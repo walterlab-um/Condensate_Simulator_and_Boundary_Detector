@@ -12,7 +12,7 @@ real_img_pxlsize = 100  # unit: nm
 truth_img_pxlsize = 10  # unit: nm
 condensate_r_range = (100, 2000)  # unit: nm
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-N_condensate = 1  # number of condensates per field of view
+N_condensate = 2  # number of condensates per field of view
 N_fov = 10  # number of total im
 folder_save = fd.askdirectory()
 
@@ -39,9 +39,9 @@ index = np.hstack(index)
 df_groundtruth = pd.DataFrame(
     {
         "FOVindex": index,
-        "x": center_x,
-        "y": center_y,
-        "r": condensate_r,
+        "x_nm": center_x,
+        "y_nm": center_y,
+        "r_nm": condensate_r,
         "r_min_nm": np.repeat(condensate_r_range[0], N_fov * N_condensate),
         "r_max_nm": np.repeat(condensate_r_range[1], N_fov * N_condensate),
         "FOVsize_nm": np.repeat(fovsize, N_fov * N_condensate),
@@ -58,3 +58,6 @@ for current_fov in index:
         np.arange(int(fovsize / real_img_pxlsize)),
         np.arange(int(fovsize / real_img_pxlsize)),
     )
+    center_x_pxl = df_current.x_nm / real_img_pxlsize
+    center_y_pxl = df_current.y_nm / real_img_pxlsize
+    r_pxl = df_current.r_nm / real_img_pxlsize
