@@ -13,7 +13,7 @@ truth_img_pxlsize = 10  # unit: nm
 condensate_r_range = (100, 2000)  # unit: nm
 pad_size = 200  # push condensates back from FOV edges. unit: nm
 N_condensate = 1  # number of condensates per field of view
-N_fov = 100  # number of total im
+N_fov = 10  # number of total im
 folder_save = fd.askdirectory()
 
 ##################################
@@ -51,3 +51,10 @@ df_groundtruth = pd.DataFrame(
 )
 path_save = join(folder_save, "groundtruth.csv")
 df_groundtruth.to_csv(path_save, index=False)
+# Generate truth image
+for current_fov in index:
+    df_current = df_groundtruth[df_groundtruth.FOVindex == current_fov]
+    pxl_x, pxl_y = np.meshgrid(
+        np.arange(int(fovsize / real_img_pxlsize)),
+        np.arange(int(fovsize / real_img_pxlsize)),
+    )
