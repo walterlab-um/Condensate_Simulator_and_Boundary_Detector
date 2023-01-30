@@ -1,11 +1,10 @@
 from os.path import join, dirname, realpath
 import numpy as np
-from numpy.random import normal, rand
+from numpy.random import normal, rand, poisson
 import pandas as pd
 from tifffile import imwrite
 from scipy.ndimage import gaussian_filter
-from skimage.util import img_as_uint, random_noise
-from tkinter import filedialog as fd
+from skimage.util import random_noise, img_as_uint, img_as_float
 from rich.progress import track
 
 ##################################
@@ -14,27 +13,26 @@ folder_save = dirname(realpath(__file__))
 fovsize = 5000  # unit: nm
 truth_img_pxlsize = 10  # unit: nm
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
-N_fov = 100  # number of total im
+N_fov = 5  # number of total im
 # Condensate parameters
 # condensate size follows Gaussian distribution
 condensate_r_ave = 500  # average size of condensates, unit: nm
 condensate_r_sigma = 50
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-N_condensate = 1  # number of condensates per field of view
-C_condensed = 5000
-C_dilute = 100
+C_condensed = 15
+C_dilute = 5
 # Microscope parameters
-Numerical_Aperature = 1.4
+Numerical_Aperature = 1.5
 emission_wavelength = 488  # unit: nm
 sigma_PSF = 0.21 * emission_wavelength / Numerical_Aperature
+poisson_noise_lambda = 100  # Shot noise, exp() of Poisson distribution
+gaussian_noise_sigma = 100  # white noise
 
 
 #################################################
 # Step 1: Analytical ground truth
 # generate condensate radius
-condensate_r = normal(
-    loc=condensate_r_ave, scale=condensate_r_sigma, size=N_fov * N_condensate
-)
+condensate_r = normal(loc=condensate_r_ave, scale=condensate_r_sigma, size=N_fov)
 # make sure condensates are padded from FOV edges
 coor_min = condensate_r + pad_size
 coor_max = fovsize - condensate_r - pad_size
@@ -44,20 +42,21 @@ center_y = []
 for current_min, current_max in zip(coor_min, coor_max):
     center_x.append(rand() * (current_max - current_min) + current_min)
     center_y.append(rand() * (current_max - current_min) + current_min)
-# generate FOV index
-index = [np.repeat(x, N_condensate) for x in range(N_fov)]
-index = np.hstack(index)
+
 # Wrap up and save ground truth
+index = np.arange(N_fov)
 df_groundtruth = pd.DataFrame(
     {
         "FOVindex": index,
         "x_nm": center_x,
         "y_nm": center_y,
         "r_nm": condensate_r,
-        "r_ave_nm": np.repeat(condensate_r_ave, N_fov * N_condensate),
-        "r_sigma_nm": np.repeat(condensate_r_sigma, N_fov * N_condensate),
-        "FOVsize_nm": np.repeat(fovsize, N_fov * N_condensate),
-        "padding_nm": np.repeat(pad_size, N_fov * N_condensate),
+        "C_dilute": np.repeat(C_dilute, N_fov),
+        "C_condensed": np.repeat(C_condensed, N_fov),
+        "r_ave_nm": np.repeat(condensate_r_ave, N_fov),
+        "r_sigma_nm": np.repeat(condensate_r_sigma, N_fov),
+        "FOVsize_nm": np.repeat(fovsize, N_fov),
+        "padding_nm": np.repeat(pad_size, N_fov),
     },
     dtype=object,
 )
@@ -70,31 +69,28 @@ for current_fov in track(index):
     df_current = df_groundtruth[df_groundtruth.FOVindex == current_fov]
     fovsize_pxl = int(fovsize / truth_img_pxlsize)
     pxl_x, pxl_y = np.meshgrid(np.arange(fovsize_pxl), np.arange(fovsize_pxl))
-    center_x_pxl = df_current.x_nm.to_numpy(float) / truth_img_pxlsize
-    center_y_pxl = df_current.y_nm.to_numpy(float) / truth_img_pxlsize
-    r_pxl = df_current.r_nm.to_numpy(float) / truth_img_pxlsize
+    center_x_pxl = df_current.x_nm.squeeze() / truth_img_pxlsize
+    center_y_pxl = df_current.y_nm.squeeze() / truth_img_pxlsize
+    r_pxl = df_current.r_nm.squeeze() / truth_img_pxlsize
 
     #################################################
     # Step 2: Ground truth high-resolution image
-
-    # To calculate whether each pixel falls within condensate range for all pixels all at once, duplicate the center x, y, r into array stacks with (x,y) shape the same as the image and height as the number of condensates in this FOV; also duplicate pxl x, y array into the same shape
-    array_center_x = np.tile(center_x_pxl.T, (fovsize_pxl, fovsize_pxl, 1))
-    array_center_y = np.tile(center_y_pxl.T, (fovsize_pxl, fovsize_pxl, 1))
-    array_r = np.tile(r_pxl.T, (fovsize_pxl, fovsize_pxl, 1))
-    array_pxl_x = np.repeat(pxl_x[:, :, np.newaxis], N_condensate, axis=2)
-    array_pxl_y = np.repeat(pxl_y[:, :, np.newaxis], N_condensate, axis=2)
-
-    # Calculate boolean of inside condensate or not for all condensates (laysers of the array) and then stack to one image
-    truth_mask = np.any(
-        (array_pxl_x - array_center_x) ** 2 + (array_pxl_y - array_center_y) ** 2
-        < array_r**2,
-        axis=2,
+    # baesd on a spherecal volume projection model: height = 2 * sqrt(r^2-d^2), only when d < r, thus need a mask for condensate
+    distance_square = (pxl_x - center_x_pxl) ** 2 + (pxl_y - center_y_pxl) ** 2
+    condensate_mask = distance_square < r_pxl**2
+    volume_density_in = (
+        2 * np.sqrt(np.abs(r_pxl**2 - distance_square)) * condensate_mask
     )
-    img_truth = truth_mask * C_condensed + (1 - truth_mask) * C_dilute
+    volume_density_out = (2 * r_pxl - volume_density_in) * condensate_mask
+    img_truth = (
+        volume_density_in * C_condensed
+        + volume_density_out * C_dilute
+        + (1 - condensate_mask) * C_dilute * 2 * r_pxl
+    )
 
     # Save ground truth, high-resolution image
     path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(path_save, img_as_uint(img_truth), imagej=True)
+    imwrite(path_save, img_truth.astype("uint16"), imagej=True)
 
     #################################################
     # Step 3: simulated 'real' image
@@ -120,7 +116,14 @@ for current_fov in track(index):
     img_shrinked = np.array(lst_pxl_value, dtype="uint16").reshape(
         (fovsize_pxl, fovsize_pxl)
     )
-    img_real = random_noise(img_shrinked, mode="poisson")
+    poisson_noise = poisson(lam=poisson_noise_lambda, size=img_shrinked.shape)
+    img_shot = img_shrinked + poisson_noise
+    gaussian_noise = normal(0, gaussian_noise_sigma, img_shrinked.shape)
+    img_shot_gaussian = img_shot + gaussian_noise
 
     path_save = join(folder_save, "Test-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(path_save, img_as_uint(img_real), imagej=True)
+    imwrite(
+        path_save,
+        img_shot_gaussian.astype("uint16"),
+        imagej=True,
+    )
