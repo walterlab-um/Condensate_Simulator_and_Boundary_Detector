@@ -16,7 +16,7 @@ real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxl
 N_fov = 5  # number of total im
 # Condensate parameters
 # condensate size follows Gaussian distribution
-condensate_r_ave = 500  # average size of condensates, unit: nm
+condensate_r_ave = 200  # average size of condensates, unit: nm
 condensate_r_sigma = 50
 pad_size = 200  # push condensates back from FOV edges. unit: nm
 C_condensed = 15
@@ -26,7 +26,7 @@ Numerical_Aperature = 1.5
 emission_wavelength = 488  # unit: nm
 sigma_PSF = 0.21 * emission_wavelength / Numerical_Aperature
 poisson_noise_lambda = 100  # Shot noise, exp() of Poisson distribution
-gaussian_noise_sigma = 100  # white noise
+gaussian_noise_sigma = 50  # white noise
 
 
 #################################################
@@ -117,6 +117,7 @@ for current_fov in track(index):
         (fovsize_pxl, fovsize_pxl)
     )
     poisson_noise = poisson(lam=poisson_noise_lambda, size=img_shrinked.shape)
+    poisson_noise[poisson_noise > img_shrinked.max()] = 0  # Trim off extreme values
     img_shot = img_shrinked + poisson_noise
     gaussian_noise = normal(0, gaussian_noise_sigma, img_shrinked.shape)
     img_shot_gaussian = img_shot + gaussian_noise
@@ -124,6 +125,6 @@ for current_fov in track(index):
     path_save = join(folder_save, "Test-FOVindex-" + str(current_fov) + ".tif")
     imwrite(
         path_save,
-        img_shot_gaussian.astype("uint16"),
+        img_as_uint(img_shot_gaussian / 65535),
         imagej=True,
     )
