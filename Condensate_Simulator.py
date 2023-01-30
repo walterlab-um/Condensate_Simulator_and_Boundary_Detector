@@ -1,29 +1,40 @@
 from os.path import join
 import numpy as np
-from numpy.random import rand
+from numpy.random import normal, rand
 import pandas as pd
 from tifffile import imwrite
-from skimage.util import img_as_uint
+from scipy.ndimage import gaussian_filter
+from skimage.util import img_as_uint, random_noise
 from tkinter import filedialog as fd
 from rich.progress import track
 
 ##################################
-# Parameters
+# folder_save = fd.askdirectory()
+folder_save = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/1-condensate-perFOV"
+# FOV parameters
 fovsize = 5000  # unit: nm
-real_img_pxlsize = 100  # unit: nm
 truth_img_pxlsize = 10  # unit: nm
-condensate_r_range = (100, 300)  # unit: nm
+real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
+N_fov = 100  # number of total im
+# Condensate parameters
+# condensate size follows Gaussian distribution
+condensate_r_ave = 500  # average size of condensates, unit: nm
+condensate_r_sigma = 50
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-N_condensate = 10  # number of condensates per field of view
-N_fov = 10  # number of total im
-folder_save = fd.askdirectory()
+N_condensate = 1  # number of condensates per field of view
+C_condensed = 5000
+C_dilute = 100
+# Microscope parameters
+Numerical_Aperature = 1.4
+emission_wavelength = 488  # unit: nm
+sigma_PSF = 0.21 * emission_wavelength / Numerical_Aperature
 
-##################################
-# Main
+
+#################################################
+# Step 1: Analytical ground truth
 # generate condensate radius
-condensate_r = (
-    rand(N_fov * N_condensate) * (condensate_r_range[1] - condensate_r_range[0])
-    + condensate_r_range[0]
+condensate_r = normal(
+    loc=condensate_r_ave, sigma=condensate_r_sigma, size=N_fov * N_condensate
 )
 # make sure condensates are padded from FOV edges
 coor_min = condensate_r + pad_size
@@ -44,8 +55,8 @@ df_groundtruth = pd.DataFrame(
         "x_nm": center_x,
         "y_nm": center_y,
         "r_nm": condensate_r,
-        "r_min_nm": np.repeat(condensate_r_range[0], N_fov * N_condensate),
-        "r_max_nm": np.repeat(condensate_r_range[1], N_fov * N_condensate),
+        "r_ave_nm": np.repeat(condensate_r_ave, N_fov * N_condensate),
+        "r_sigma_nm": np.repeat(condensate_r_sigma, N_fov * N_condensate),
         "FOVsize_nm": np.repeat(fovsize, N_fov * N_condensate),
         "padding_nm": np.repeat(pad_size, N_fov * N_condensate),
     },
@@ -53,25 +64,64 @@ df_groundtruth = pd.DataFrame(
 )
 path_save = join(folder_save, "groundtruth.csv")
 df_groundtruth.to_csv(path_save, index=False)
-# Generate truth image
+
+# Generate truth image and simulated real image
 for current_fov in track(index):
+    # extract condensate ground truth for current FOV
     df_current = df_groundtruth[df_groundtruth.FOVindex == current_fov]
     fovsize_pxl = int(fovsize / truth_img_pxlsize)
     pxl_x, pxl_y = np.meshgrid(np.arange(fovsize_pxl), np.arange(fovsize_pxl))
     center_x_pxl = df_current.x_nm.to_numpy(float) / truth_img_pxlsize
     center_y_pxl = df_current.y_nm.to_numpy(float) / truth_img_pxlsize
     r_pxl = df_current.r_nm.to_numpy(float) / truth_img_pxlsize
+
+    #################################################
+    # Step 2: Ground truth high-resolution image
+
     # To calculate whether each pixel falls within condensate range for all pixels all at once, duplicate the center x, y, r into array stacks with (x,y) shape the same as the image and height as the number of condensates in this FOV; also duplicate pxl x, y array into the same shape
     array_center_x = np.tile(center_x_pxl.T, (fovsize_pxl, fovsize_pxl, 1))
     array_center_y = np.tile(center_y_pxl.T, (fovsize_pxl, fovsize_pxl, 1))
     array_r = np.tile(r_pxl.T, (fovsize_pxl, fovsize_pxl, 1))
     array_pxl_x = np.repeat(pxl_x[:, :, np.newaxis], N_condensate, axis=2)
     array_pxl_y = np.repeat(pxl_y[:, :, np.newaxis], N_condensate, axis=2)
+
     # Calculate boolean of inside condensate or not for all condensates (laysers of the array) and then stack to one image
-    img_truth = np.any(
+    truth_mask = np.any(
         (array_pxl_x - array_center_x) ** 2 + (array_pxl_y - array_center_y) ** 2
         < array_r**2,
         axis=2,
     )
+    img_truth = truth_mask * C_condensed + (1 - truth_mask) * C_dilute
+
+    # Save ground truth, high-resolution image
     path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
     imwrite(path_save, img_as_uint(img_truth), imagej=True)
+
+    #################################################
+    # Step 3: simulated 'real' image
+
+    # Convolution with Gaussian approximation of PSF. Interference happens irrespective of optical magnification or pixel size and thus should be performed first.
+    sigma_PSF_pxl = sigma_PSF / real_img_pxlsize
+    img_PSFconvolved = gaussian_filter(img_truth, sigma=sigma_PSF_pxl)
+    # Magnification adjustment. Re-adjust the high-res image back to practically low-res image by integration
+    fovsize_pxl = int(fovsize / real_img_pxlsize)
+    pxl_x, pxl_y = np.meshgrid(np.arange(fovsize_pxl), np.arange(fovsize_pxl))
+    ratio = int(real_img_pxlsize / truth_img_pxlsize)
+    lst_pxl_value = []
+    for xx in np.arange(fovsize_pxl):
+        for yy in np.arange(fovsize_pxl):
+            lst_pxl_value.append(
+                np.sum(
+                    img_PSFconvolved[
+                        ratio * xx : ratio * (xx + 1), ratio * yy : ratio * (yy + 1)
+                    ]
+                )
+                / (ratio**2)
+            )
+    img_shrinked = np.array(lst_pxl_value, dtype="uint16").reshape(
+        (fovsize_pxl, fovsize_pxl)
+    )
+    img_real = random_noise(img_shrinked, mode="poisson")
+
+    path_save = join(folder_save, "Test-FOVindex-" + str(current_fov) + ".tif")
+    imwrite(path_save, img_as_uint(img_real), imagej=True)
