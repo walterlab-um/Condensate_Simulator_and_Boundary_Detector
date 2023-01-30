@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import join, dirname, realpath
 import numpy as np
 from numpy.random import normal, rand
 import pandas as pd
@@ -9,8 +9,7 @@ from tkinter import filedialog as fd
 from rich.progress import track
 
 ##################################
-# folder_save = fd.askdirectory()
-folder_save = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/1-condensate-perFOV"
+folder_save = dirname(realpath(__file__))
 # FOV parameters
 fovsize = 5000  # unit: nm
 truth_img_pxlsize = 10  # unit: nm
