@@ -33,7 +33,7 @@ sigma_PSF = 0.21 * emission_wavelength / Numerical_Aperature
 # Step 1: Analytical ground truth
 # generate condensate radius
 condensate_r = normal(
-    loc=condensate_r_ave, sigma=condensate_r_sigma, size=N_fov * N_condensate
+    loc=condensate_r_ave, scale=condensate_r_sigma, size=N_fov * N_condensate
 )
 # make sure condensates are padded from FOV edges
 coor_min = condensate_r + pad_size
