@@ -19,11 +19,13 @@ N_fov = 1  # number of total im
 condensate_r_ave = 200  # average size of condensates, unit: nm
 condensate_r_sigma = condensate_r_ave / 5
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-C_condensed = 100
-C_dilute = 0.02
+C_condensed = 1  # Maintain this at 1 to prevent exceeding uint16
+C_dilute = (
+    0.0002  # Note the concentraion here is the relative concentration to C_condense
+)
 # C_condensed = 0
 # C_dilute = 0
-quantum_yield = 0.1  # correction factor when generating simulated image to match background intensity to experiments
+laser_power = 10  # mimic experiment data intensity by changing this
 # Microscope parameters
 lightsheet_dz = 8000  # HILO lightsheet thickness, nm, the simulator assume condensates size is always smaller than lightsheet
 Numerical_Aperature = 1.5
@@ -121,7 +123,7 @@ for current_fov in track(index):
                 / (ratio**2)
             )
     img_shrinked = (
-        np.array(lst_pxl_value).reshape((fovsize_pxl, fovsize_pxl)) * quantum_yield
+        np.array(lst_pxl_value).reshape((fovsize_pxl, fovsize_pxl)) * laser_power
     )
     poisson_noise = poisson(lam=poisson_noise_lambda, size=img_shrinked.shape)
     poisson_noise[poisson_noise > 65535] = 0  # Trim off extreme values exceeding uint16
