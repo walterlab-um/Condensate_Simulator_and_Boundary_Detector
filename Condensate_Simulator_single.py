@@ -13,20 +13,25 @@ folder_save = dirname(realpath(__file__))
 fovsize = 5000  # unit: nm
 truth_img_pxlsize = 10  # unit: nm
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
-N_fov = 5  # number of total im
+N_fov = 1  # number of total im
 # Condensate parameters
 # condensate size follows Gaussian distribution
 condensate_r_ave = 200  # average size of condensates, unit: nm
-condensate_r_sigma = 50
+condensate_r_sigma = condensate_r_ave / 5
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-C_condensed = 15
-C_dilute = 5
+C_condensed = 100
+C_dilute = 0.02
+# C_condensed = 0
+# C_dilute = 0
+quantum_yield = 0.1  # correction factor when generating simulated image to match background intensity to experiments
 # Microscope parameters
+lightsheet_dz = 8000  # HILO lightsheet thickness, nm, the simulator assume condensates size is always smaller than lightsheet
 Numerical_Aperature = 1.5
 emission_wavelength = 488  # unit: nm
 sigma_PSF = 0.21 * emission_wavelength / Numerical_Aperature
-poisson_noise_lambda = 100  # Shot noise, exp() of Poisson distribution
-gaussian_noise_sigma = 50  # white noise
+poisson_noise_lambda = 5  # Shot noise, exp() of Poisson distribution
+gaussian_noise_mean = 400
+gaussian_noise_sigma = 5  # white noise
 
 
 #################################################
@@ -86,11 +91,13 @@ for current_fov in track(index):
         volume_density_in * C_condensed
         + volume_density_out * C_dilute
         + (1 - condensate_mask) * C_dilute * 2 * r_pxl
+        + np.ones(volume_density_in.shape) * C_dilute * (lightsheet_dz - 2 * r_pxl)
     )
+    img_truth = img_truth.astype("uint16")
 
     # Save ground truth, high-resolution image
     path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(path_save, img_truth.astype("uint16"), imagej=True)
+    imwrite(path_save, img_truth, imagej=True)
 
     #################################################
     # Step 3: simulated 'real' image
@@ -113,18 +120,35 @@ for current_fov in track(index):
                 )
                 / (ratio**2)
             )
-    img_shrinked = np.array(lst_pxl_value, dtype="uint16").reshape(
-        (fovsize_pxl, fovsize_pxl)
+    img_shrinked = (
+        np.array(lst_pxl_value).reshape((fovsize_pxl, fovsize_pxl)) * quantum_yield
     )
     poisson_noise = poisson(lam=poisson_noise_lambda, size=img_shrinked.shape)
-    poisson_noise[poisson_noise > img_shrinked.max()] = 0  # Trim off extreme values
-    img_shot = img_shrinked + poisson_noise
-    gaussian_noise = normal(0, gaussian_noise_sigma, img_shrinked.shape)
-    img_shot_gaussian = img_shot + gaussian_noise
+    poisson_noise[poisson_noise > 65535] = 0  # Trim off extreme values exceeding uint16
+    img_shot = img_shrinked.astype("uint16") + poisson_noise.astype("uint16")
+    # img_shot = img_as_uint(random_noise(img_shrinked.astype("uint16"), mode="poisson"))
+    gaussian_noise = normal(
+        gaussian_noise_mean, gaussian_noise_sigma, img_shrinked.shape
+    )
+    img_shot_gaussian = img_shot + gaussian_noise.astype("uint16")
 
-    path_save = join(folder_save, "Test-FOVindex-" + str(current_fov) + ".tif")
+    path_save = join(folder_save, "shrinked-FOVindex-" + str(current_fov) + ".tif")
     imwrite(
         path_save,
-        img_as_uint(img_shot_gaussian / 65535),
+        img_shrinked.astype("uint16"),
+        imagej=True,
+    )
+
+    path_save = join(folder_save, "shot-FOVindex-" + str(current_fov) + ".tif")
+    imwrite(
+        path_save,
+        img_shot,
+        imagej=True,
+    )
+
+    path_save = join(folder_save, "final-FOVindex-" + str(current_fov) + ".tif")
+    imwrite(
+        path_save,
+        img_shot_gaussian,
         imagej=True,
     )
