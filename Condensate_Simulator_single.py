@@ -19,11 +19,11 @@ N_fov = 1  # number of total im
 condensate_r_ave = 200  # average size of condensates, unit: nm
 condensate_r_sigma = condensate_r_ave / 5
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-C_condensed = 1  # Maintain this at 1 to prevent exceeding uint16
+C_condense = 1  # Maintain this at 1 to prevent exceeding uint16
 C_dilute = (
-    0.0002  # Note the concentraion here is the relative concentration to C_condense
+    0.0005  # Note the concentraion here is the relative concentration to C_condense
 )
-# C_condensed = 0
+# C_condense = 0
 # C_dilute = 0
 laser_power = 10  # mimic experiment data intensity by changing this
 # Microscope parameters
@@ -59,7 +59,7 @@ df_groundtruth = pd.DataFrame(
         "y_nm": center_y,
         "r_nm": condensate_r,
         "C_dilute": np.repeat(C_dilute, N_fov),
-        "C_condensed": np.repeat(C_condensed, N_fov),
+        "C_condense": np.repeat(C_condense, N_fov),
         "r_ave_nm": np.repeat(condensate_r_ave, N_fov),
         "r_sigma_nm": np.repeat(condensate_r_sigma, N_fov),
         "FOVsize_nm": np.repeat(fovsize, N_fov),
@@ -90,7 +90,7 @@ for current_fov in track(index):
     )
     volume_density_out = (2 * r_pxl - volume_density_in) * condensate_mask
     img_truth = (
-        volume_density_in * C_condensed
+        volume_density_in * C_condense
         + volume_density_out * C_dilute
         + (1 - condensate_mask) * C_dilute * 2 * r_pxl
         + np.ones(volume_density_in.shape) * C_dilute * (lightsheet_dz - 2 * r_pxl)
