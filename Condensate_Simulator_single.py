@@ -21,13 +21,15 @@ condensate_r_sigma = condensate_r_ave / 5
 pad_size = 200  # push condensates back from FOV edges. unit: nm
 C_condensed = 1  # Maintain this at 1 to prevent exceeding uint16
 C_dilute = (
-    0.0002  # Note the concentraion here is the relative concentration to C_condense
+    0.01  # Note the concentraion here is the relative concentration to C_condense
 )
 # C_condensed = 0
 # C_dilute = 0
-laser_power = 10  # mimic experiment data intensity by changing this
+laser_power = 11  # mimic experiment data intensity by changing this
 # Microscope parameters
-lightsheet_dz = 8000  # HILO lightsheet thickness, nm, the simulator assume condensates size is always smaller than lightsheet
+depth_of_focus = (
+    500  # unit, nm, theoretical estimators of DOF are complicated, here assume 0.5 um
+)
 Numerical_Aperature = 1.5
 emission_wavelength = 488  # unit: nm
 sigma_PSF = 0.21 * emission_wavelength / Numerical_Aperature
@@ -85,15 +87,28 @@ for current_fov in track(index):
     # baesd on a spherecal volume projection model: height = 2 * sqrt(r^2-d^2), only when d < r, thus need a mask for condensate
     distance_square = (pxl_x - center_x_pxl) ** 2 + (pxl_y - center_y_pxl) ** 2
     condensate_mask = distance_square < r_pxl**2
-    volume_density_in = (
-        2 * np.sqrt(np.abs(r_pxl**2 - distance_square)) * condensate_mask
-    )
-    volume_density_out = (2 * r_pxl - volume_density_in) * condensate_mask
+
+    if 2 * r_pxl < depth_of_focus:  # small condensate
+        # density inside condensate region and inside condensate
+        volume_density_in = (
+            2 * np.sqrt(np.abs(r_pxl**2 - distance_square)) * condensate_mask
+        )
+        # density inside condensate region but above/below condensate
+        volume_density_out = (depth_of_focus - volume_density_in) * condensate_mask
+
+    elif 2 * r_pxl > depth_of_focus:  # large condensate
+        # density inside condensate region and inside condensate
+        volume_density_in = (
+            2 * np.sqrt(np.abs(r_pxl**2 - distance_square)) * condensate_mask
+        )
+        volume_density_in[volume_density_in > depth_of_focus] = depth_of_focus
+        # density inside condensate region but above/below condensate
+        volume_density_out = (depth_of_focus - volume_density_in) * condensate_mask
+
     img_truth = (
         volume_density_in * C_condensed
         + volume_density_out * C_dilute
-        + (1 - condensate_mask) * C_dilute * 2 * r_pxl
-        + np.ones(volume_density_in.shape) * C_dilute * (lightsheet_dz - 2 * r_pxl)
+        + (1 - condensate_mask) * C_dilute * depth_of_focus
     )
     img_truth = img_truth.astype("uint16")
 
