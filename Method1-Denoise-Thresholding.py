@@ -1,28 +1,33 @@
 from tkinter import filedialog as fd
-from os.path import join, dirname, basename
 import cv2
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import exposure
 from scipy.signal import medfilt
 from tifffile import imread
-from itertools import compress
-from copy import deepcopy
-import pickle
 from rich.progress import track
 
-med_size = 5  # pixels
-threshold = 0.3  # threshold * (max - min) + min
+####################################
+# Parameters
+med_size = 3  # pixels
+threshold = 0.77  # threshold * (max - min) + min
+min_intensity = 0  # filter on average intensity within a contour
+
 dilation = True
+morph_shape = cv2.MORPH_ELLIPSE
+dilatation_size = 1
+
 rescale_contrast = True
+plow = 0.05  # imshow intensity percentile
+phigh = 95
 
 # lst_tifs = list(fd.askopenfilenames())
 lst_tifs = [
     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
 ]
 
-
+####################################
+# Functions
 def cnt_fill(imgshape, cnt):
     # create empty image
     mask = np.zeros(imgshape, dtype=np.uint8)
@@ -33,8 +38,8 @@ def cnt_fill(imgshape, cnt):
 
 
 def pltcontours(img, contours, fsave):
-    global rescale_contrast
-    plt.figure()
+    global rescale_contrast, plow, phigh, min_intensity
+    plt.figure(dpi=300)
     if rescale_contrast:
         # Contrast stretching
         p1, p2 = np.percentile(img, (plow, phigh))
@@ -48,20 +53,20 @@ def pltcontours(img, contours, fsave):
         if cv2.mean(img, mask=mask)[0] > min_intensity:
             x = cnt[:, 0][:, 0]
             y = cnt[:, 0][:, 1]
-            plt.plot(x, y, "r-", linewidth=0.2)
+            plt.plot(x, y, "-", color="firebrick", linewidth=1)
             # still the last closing line will be missing, get it below
             xlast = [x[-1], x[0]]
             ylast = [y[-1], y[0]]
-            plt.plot(xlast, ylast, "r-", linewidth=0.2)
-    plt.xlim(0, figsize[0])
-    plt.ylim(0, figsize[1])
+            plt.plot(xlast, ylast, "-", color="firebrick", linewidth=1)
+    plt.xlim(0, img.shape[0])
+    plt.ylim(0, img.shape[1])
     plt.tight_layout()
     plt.axis("scaled")
     plt.axis("off")
     plt.savefig(fsave, format="png", bbox_inches="tight", dpi=300)
 
 
-def fillcontours(imgshape, contours):
+def cnt2mask(imgshape, contours):
     # create empty image
     mask = np.zeros(imgshape, dtype=np.uint8)
     # draw contour
@@ -70,8 +75,8 @@ def fillcontours(imgshape, contours):
     return mask
 
 
-def mask_dilation(morph_shape, dilatation_size, mask_in):
-    global dilation
+def mask_dilation(mask_in):
+    global dilation, morph_shape, dilatation_size
     if dilation:
         element = cv2.getStructuringElement(
             morph_shape,
@@ -86,84 +91,25 @@ def mask_dilation(morph_shape, dilatation_size, mask_in):
     return mask_out
 
 
-def MAIN(img_raw):
-    edges = cv2.Canny(
-        img, cannythresh1, cannythresh2, apertureSize=SobelSize, L2gradient=L2gradient
-    )
-
-    # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
-    contours_canny, _ = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-    print("Total Number of Contours Found: ", str(len(contours_canny)))
-
-    ##############################
-    # Contours filtering
-
-    # remove small contours
-    area = np.array([cv2.contourArea(cnt) for cnt in contours_canny])
-    selector = area > min_size
-    contours_filtered_size = list(compress(contours_canny, selector))
-    print(
-        "Contours larger than minimal size: ",
-        str(100 * len(contours_filtered_size) / len(contours_canny)),
-        "%",
-    )
-
-    # filter by intensity
-    # make mask for intensity calculations
-    selector = []
-    for cnt in contours_filtered_size:
-        mask = cnt_fill(img.shape, cnt)
-        selector.append(cv2.mean(img, mask=mask)[0] > min_intensity)
-
-    contours_filtered_size_int = list(compress(contours_filtered_size, selector))
-    print(
-        "Contours larger than minimal intensity: ",
-        str(100 * len(contours_filtered_size_int) / len(contours_filtered_size)),
-        "%",
-    )
-
-    # filter by extent (area/boxsize)
-    extent = calc_extent(contours_in=contours_filtered_size_int)
-    selector = extent > min_extent
-    contours_filtered_size_int_extent = list(
-        compress(contours_filtered_size_int, selector)
-    )
-    print(
-        "Contours with a round shape: ",
-        str(
-            100
-            * len(contours_filtered_size_int_extent)
-            / len(contours_filtered_size_int)
-        ),
-        "%",
-    )
-
-    ##############################
-    # Merge overlapping contours, and dilation by 1 pixel
-    mask = fillcontours(imgshape=img.shape, contours=contours_filtered_size_int)
-    mask_dilated = mask_dilation(
-        dilation,
-        morph_shape=morph_shape,
-        dilatation_size=dilatation_size,
-        mask_in=mask,
-    )
-    contours_final, _ = cv2.findContours(
-        mask_dilated, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE
-    )
-
-    return contours_final
-
-
-##############################
-# Main body
-
+####################################
+# Main
 for fpath in track(lst_tifs):
     img_raw = imread(fpath)
     img_denoise = medfilt(img_raw, med_size)
-    # obtain canny contours
-    contours = MAIN(img_denoise)
-    # saving
-    fpath_pkl = fpath.strip(".tif") + "_contours.pkl"
-    fpath_img = fpath.strip(".tif") + "_contours.png"
-    pickle.dump([contours, img_average], open(fpath_pkl, "wb"))
-    pltcontours(img_average, contours, fpath_img, rescale_contrast)
+    edges = (
+        img_denoise
+        > threshold * (img_denoise.max() - img_denoise.min()) + img_denoise.min()
+    )
+    edges = edges * 1
+    # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
+    contours, _ = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+    print("Total Number of Contours Found: ", str(len(contours)))
+
+    # Merge overlapping contours, and dilation by 1 pixel
+    mask = cnt2mask(img_raw.shape, contours)
+    mask_dilated = mask_dilation(mask)
+    contours_final, _ = cv2.findContours(
+        mask_dilated, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE
+    )
+    fpath_img = fpath[:-4] + "_Denoise_Threshold.png"
+    pltcontours(img_raw, contours_final, fpath_img)
