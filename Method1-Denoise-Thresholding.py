@@ -53,11 +53,11 @@ def pltcontours(img, contours, fsave):
         if cv2.mean(img, mask=mask)[0] > min_intensity:
             x = cnt[:, 0][:, 0]
             y = cnt[:, 0][:, 1]
-            plt.plot(x, y, "-", color="firebrick", linewidth=1)
+            plt.plot(x, y, "-", color="firebrick", linewidth=2)
             # still the last closing line will be missing, get it below
             xlast = [x[-1], x[0]]
             ylast = [y[-1], y[0]]
-            plt.plot(xlast, ylast, "-", color="firebrick", linewidth=1)
+            plt.plot(xlast, ylast, "-", color="firebrick", linewidth=2)
     plt.xlim(0, img.shape[0])
     plt.ylim(0, img.shape[1])
     plt.tight_layout()
