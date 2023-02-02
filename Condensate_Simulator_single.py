@@ -81,6 +81,7 @@ for current_fov in track(index):
     center_x_pxl = df_current.x_nm.squeeze() / truth_img_pxlsize
     center_y_pxl = df_current.y_nm.squeeze() / truth_img_pxlsize
     r_pxl = df_current.r_nm.squeeze() / truth_img_pxlsize
+    depth_of_focus_pxl = depth_of_focus / truth_img_pxlsize
 
     #################################################
     # Step 2: Ground truth high-resolution image
@@ -88,22 +89,22 @@ for current_fov in track(index):
     distance_square = (pxl_x - center_x_pxl) ** 2 + (pxl_y - center_y_pxl) ** 2
     condensate_mask = distance_square < r_pxl**2
 
-    if 2 * r_pxl < depth_of_focus:  # small condensate
+    if 2 * r_pxl < depth_of_focus_pxl:  # small condensate
         # density inside condensate region and inside condensate
         volume_density_in = (
             2 * np.sqrt(np.abs(r_pxl**2 - distance_square)) * condensate_mask
         )
         # density inside condensate region but above/below condensate
-        volume_density_out = (depth_of_focus - volume_density_in) * condensate_mask
+        volume_density_out = (depth_of_focus_pxl - volume_density_in) * condensate_mask
 
-    elif 2 * r_pxl > depth_of_focus:  # large condensate
+    elif 2 * r_pxl > depth_of_focus_pxl:  # large condensate
         # density inside condensate region and inside condensate
         volume_density_in = (
             2 * np.sqrt(np.abs(r_pxl**2 - distance_square)) * condensate_mask
         )
-        volume_density_in[volume_density_in > depth_of_focus] = depth_of_focus
+        volume_density_in[volume_density_in > depth_of_focus_pxl] = depth_of_focus_pxl
         # density inside condensate region but above/below condensate
-        volume_density_out = (depth_of_focus - volume_density_in) * condensate_mask
+        volume_density_out = (depth_of_focus_pxl - volume_density_in) * condensate_mask
 
     img_truth = (
         volume_density_in * C_condensed
