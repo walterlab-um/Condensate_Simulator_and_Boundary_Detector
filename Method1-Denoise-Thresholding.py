@@ -12,36 +12,15 @@ from copy import deepcopy
 import pickle
 from rich.progress import track
 
+med_size = 5  # pixels
+threshold = 0.3  # threshold * (max - min) + min
+dilation = True
+rescale_contrast = True
 
-##############################
-# parameters
 # lst_tifs = list(fd.askopenfilenames())
 lst_tifs = [
-    "/Volumes/AnalysisGG/PROCESSED_DATA/2022July-RNAinFUS-preliminary/20220712_FLmRNA_10FUS_1Mg_10Dex_noTotR_24C/high_freq_50Hz_both_on_FOV-5-condensate.tif"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
 ]
-figsize = np.array([428, 684], dtype=float)
-
-# imshow rescale parameters
-rescale_switch = 1  # on, 1; off, 0
-plow = 0.05  # imshow intensity percentile
-phigh = 99
-
-# Canny edge detection parameters
-cannythresh1 = 50
-cannythresh2 = 2400
-SobelSize = 7  # 3/5/7
-L2gradient = True
-# Contour cleaning parameters
-min_size = 5  # unit: pixel^2
-min_intensity = 100
-min_extent = 0.5
-# Contour dilation parameters
-dilation_switch = 1  # on, 1; off, 0
-morph_shape = cv2.MORPH_ELLIPSE
-dilatation_size = 1
-
-##############################
-# functions
 
 
 def cnt_fill(imgshape, cnt):
@@ -53,9 +32,10 @@ def cnt_fill(imgshape, cnt):
     return mask
 
 
-def pltcontours(img, contours, fsave, rescale_switch):
+def pltcontours(img, contours, fsave):
+    global rescale_contrast
     plt.figure()
-    if rescale_switch == 1:
+    if rescale_contrast:
         # Contrast stretching
         p1, p2 = np.percentile(img, (plow, phigh))
         img_rescale = exposure.rescale_intensity(img, in_range=(p1, p2))
@@ -81,28 +61,6 @@ def pltcontours(img, contours, fsave, rescale_switch):
     plt.savefig(fsave, format="png", bbox_inches="tight", dpi=300)
 
 
-def cannyprep(img_raw):
-    # convert image to uint8 since Canny algorithm does not take uint16 data. However, directly forcing uint8 will lose information above 255!!! Therefore, need to first convey to array, normalize, and then change to uint8.
-
-    # normalization
-    img = img_raw / img_raw.max()  # normalize to (0,1)
-    img = img * 255  # re-scale to uint8
-    img = img.astype(np.uint8)
-
-    return img
-
-
-def calc_extent(contours_in):
-    area = np.array([cv2.contourArea(cnt) for cnt in contours_in], dtype=float)
-    boxes_xywh = np.array([cv2.boundingRect(cnt) for cnt in contours_in])
-    width = boxes_xywh[:, 2]
-    height = boxes_xywh[:, 3]
-    rect_area = width * height
-    extent = area / rect_area
-
-    return extent
-
-
 def fillcontours(imgshape, contours):
     # create empty image
     mask = np.zeros(imgshape, dtype=np.uint8)
@@ -112,8 +70,9 @@ def fillcontours(imgshape, contours):
     return mask
 
 
-def mask_dilation(switch, morph_shape, dilatation_size, mask_in):
-    if switch == 1:
+def mask_dilation(morph_shape, dilatation_size, mask_in):
+    global dilation
+    if dilation:
         element = cv2.getStructuringElement(
             morph_shape,
             (2 * dilatation_size + 1, 2 * dilatation_size + 1),
@@ -121,19 +80,13 @@ def mask_dilation(switch, morph_shape, dilatation_size, mask_in):
         )
         mask_out = cv2.dilate(mask_in, element)
 
-    elif switch == 0:
-        mask_out = mask_in
-
     else:
-        print("dilation_switch must be either 0 for off or 1 for on.")
+        mask_out = mask_in
 
     return mask_out
 
 
-def MAIN_canny_contours(img_raw, switch):
-    ##############################
-    # Canny Edge detection
-    img = cannyprep(img_raw)  # convert to uint8
+def MAIN(img_raw):
     edges = cv2.Canny(
         img, cannythresh1, cannythresh2, apertureSize=SobelSize, L2gradient=L2gradient
     )
@@ -189,7 +142,7 @@ def MAIN_canny_contours(img_raw, switch):
     # Merge overlapping contours, and dilation by 1 pixel
     mask = fillcontours(imgshape=img.shape, contours=contours_filtered_size_int)
     mask_dilated = mask_dilation(
-        dilation_switch,
+        dilation,
         morph_shape=morph_shape,
         dilatation_size=dilatation_size,
         mask_in=mask,
@@ -205,13 +158,12 @@ def MAIN_canny_contours(img_raw, switch):
 # Main body
 
 for fpath in track(lst_tifs):
-    # perform average intensity projection, so any moving objects would blur out compared to maximum intensity projection
-    img_average = np.mean(imread(fpath), axis=0)
-    img_denoise = medfilt(img_average, 5)
+    img_raw = imread(fpath)
+    img_denoise = medfilt(img_raw, med_size)
     # obtain canny contours
-    contours = MAIN_canny_contours(img_denoise, switch=dilation_switch)
+    contours = MAIN(img_denoise)
     # saving
     fpath_pkl = fpath.strip(".tif") + "_contours.pkl"
     fpath_img = fpath.strip(".tif") + "_contours.png"
     pickle.dump([contours, img_average], open(fpath_pkl, "wb"))
-    pltcontours(img_average, contours, fpath_img, rescale_switch)
+    pltcontours(img_average, contours, fpath_img, rescale_contrast)
