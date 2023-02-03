@@ -8,10 +8,10 @@ import seaborn as sns
 
 sns.set(color_codes=True, style="white")
 
-# folder = fd.askdirectory(
-#     initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
-# )
-folder = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/mimic_Dcp1a_HOPS/test_100"
+folder = fd.askdirectory(
+    initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
+)
+# folder = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/mimic_Dcp1a_HOPS/test_100"
 os.chdir(folder)
 
 
