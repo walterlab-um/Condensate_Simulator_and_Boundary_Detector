@@ -1,10 +1,13 @@
 from tkinter import filedialog as fd
+from os.path import dirname, join
+import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import exposure
 from scipy.signal import medfilt
 from tifffile import imread
+import pickle
 from rich.progress import track
 
 ####################################
@@ -26,10 +29,18 @@ rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 
-# lst_tifs = list(fd.askopenfilenames())
+folder = fd.askdirectory(
+    initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
+)
+os.chdir(folder)
 lst_tifs = [
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-large.tif"
+    f for f in os.listdir(folder) if f.endswith(".tif") and f.startswith("final-")
 ]
+# lst_tifs = [
+#     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-large.tif"
+# ]
+
+switch_plot = True  # a switch to turn off plotting
 
 ####################################
 # Functions
@@ -98,7 +109,10 @@ def mask_dilation(mask_in):
 
 ####################################
 # Main
+lst_index = []
+lst_contours = []
 for fpath in track(lst_tifs):
+    index = fpath.split("FOVindex-")[-1][:-4]
     img_raw = imread(fpath)
     img_denoise = medfilt(img_raw, med_size)
 
@@ -113,7 +127,6 @@ for fpath in track(lst_tifs):
 
     # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
     contours, _ = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-    print("Total Number of Contours Found: ", str(len(contours)))
 
     # Merge overlapping contours, and dilation by 1 pixel
     mask = cnt2mask(img_raw.shape, contours)
@@ -121,5 +134,15 @@ for fpath in track(lst_tifs):
     contours_final, _ = cv2.findContours(
         mask_dilated, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE
     )
+
+    lst_index.append(index)
+    lst_contours.append(contours_final)
+
     fpath_img = fpath[:-4] + "_Canny.png"
-    pltcontours(img_raw, contours_final, fpath_img)
+    if switch_plot:
+        pltcontours(img_raw, contours_final, fpath_img)
+    else:
+        continue
+
+fpath_pkl = join(dirname(fpath), "Contours_Canny.pkl")
+pickle.dump([lst_index, lst_contours], open(fpath_pkl, "wb"))
