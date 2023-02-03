@@ -33,6 +33,8 @@ lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
 #     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
 # ]
 
+switch_plot = False  # a switch to turn off plotting
+
 ####################################
 # Functions
 def cnt_fill(imgshape, cnt):
@@ -126,7 +128,10 @@ for fpath in track(lst_tifs):
     lst_contours.append(contours_final)
 
     fpath_img = fpath[:-4] + "_Denoise_Threshold.png"
-    pltcontours(img_raw, contours_final, fpath_img)
+    if switch_plot:
+        pltcontours(img_raw, contours_final, fpath_img)
+    else:
+        continue
 
 fpath_pkl = join(dirname(fpath), "Contours_Denoise_Threshold.pkl")
 pickle.dump([lst_index, lst_contours], open(fpath_pkl, "wb"))
