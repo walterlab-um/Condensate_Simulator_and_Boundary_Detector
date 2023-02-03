@@ -35,7 +35,7 @@ lst_tifs = [
 #     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
 # ]
 
-switch_plot = True  # a switch to turn off plotting
+switch_plot = False  # a switch to turn off plotting
 
 ####################################
 # Functions
