@@ -22,18 +22,20 @@ dilatation_size = 1
 
 rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
-phigh = 95
+phigh = 99
 
 folder = fd.askdirectory(
     initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
 )
 os.chdir(folder)
-lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
+lst_tifs = [
+    f for f in os.listdir(folder) if f.endswith(".tif") and f.startswith("final-")
+]
 # lst_tifs = [
 #     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
 # ]
 
-switch_plot = False  # a switch to turn off plotting
+switch_plot = True  # a switch to turn off plotting
 
 ####################################
 # Functions
