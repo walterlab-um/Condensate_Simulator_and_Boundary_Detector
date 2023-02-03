@@ -1,3 +1,5 @@
+from tkinter import filedialog as fd
+import os
 import pickle
 import cv2
 import pandas as pd
@@ -6,8 +8,14 @@ import seaborn as sns
 
 sns.set(color_codes=True, style="white")
 
-path_pkl = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Small-HighC/Contours_Denoise_Threshold.pkl"
-path_groundtruth = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Small-HighC/groundtruth.csv"
+folder = fd.askdirectory(
+    initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
+)
+os.chdir(folder)
+
+
+path_pkl = [f for f in os.listdir(folder) if f.endswith(".pkl")][0]
+path_groundtruth = [f for f in os.listdir(folder) if f.endswith("groundtruth.csv")][0]
 
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
 fovsize = 5000  # unit: nm
