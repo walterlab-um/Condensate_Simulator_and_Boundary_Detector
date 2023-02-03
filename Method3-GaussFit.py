@@ -1,130 +1,150 @@
-import concurrent.futures
-from os.path import join, dirname
 from tkinter import filedialog as fd
-from tifffile import imread, imwrite
-import math
-import numpy as np
 import pandas as pd
-from scipy import optimize
-from skimage.feature import blob_log
-from rich.progress import Progress
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
+from skimage import exposure
 
+from scipy.signal import medfilt
 
-def Gauss2d(background, height, centerx, centery, sigma):
-    # Returns a gaussian *function* with the given parameters. Such *function* can take in arguments. It's a way in python to distinguish arguments from parameters.
-    # Therefore, the use of this function will be
-    # Gauss2d(parameters)(x, y)
-    return lambda x, y: background + height * np.exp(
-        -((x - centerx) ** 2 + (y - centery) ** 2) / 2 * (sigma ** 2)
+# from scipy.ndimage import gaussian_filter
+from skimage.feature import blob_dog, blob_log
+from lmfit.models import Gaussian2dModel
+from tifffile import imread
+from rich.progress import track
+
+####################################
+# Parameters
+# Denoise
+med_size = 3  # pixels
+# Gauss_size = 2  # pixels
+# DoG detector
+blob_LoG_threshold = 0.0005
+max_sig = 2
+# Gauss Fit
+crop_size = 3  # pixels, half size of crop for Gauss fit
+chisqr_threshold = 150  # Goodness of fit
+Nsigma = 3  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
+
+rescale_contrast = True
+plow = 0.05  # imshow intensity percentile
+phigh = 95
+
+# lst_tifs = list(fd.askopenfilenames())
+lst_tifs = [
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
+]
+
+####################################
+# Main
+for fpath in track(lst_tifs):
+    img = imread(fpath)
+    img_denoised = medfilt(img, med_size)
+    # img_denoised = gaussian_filter(img, sigma=Gauss_size)
+
+    blobs = blob_log(
+        img_denoised, threshold=blob_LoG_threshold, exclude_border=3, max_sigma=max_sig
     )
 
+    # make local crops around
+    lst_GaussCrop = []
+    for initial_x, initial_y, initial_sigma in blobs:
+        GaussCrop = img_denoised[
+            int(initial_x) - crop_size : int(initial_x) + crop_size + 1,
+            int(initial_y) - crop_size : int(initial_y) + crop_size + 1,
+        ]
+        if GaussCrop.size > 0:
+            # This mean a large blob is NOT near boundary and a full crop CAN be obtained
+            lst_GaussCrop.append(GaussCrop)
 
-def fit_single_blob(params):
-    GaussCrop, blob = params
-    initial_x, initial_y, initial_sigma = blob
-    # Fitting with BACKGROUND offset
-    background_ini = GaussCrop.min()
-    height_ini = GaussCrop.max()
-    params_ini = [
-        background_ini,
-        height_ini,
-        GaussCrop.shape[0] / 2,
-        GaussCrop.shape[0] / 2,
-        initial_sigma,
-    ]
-
-    errorfunc = lambda params: np.ravel(
-        Gauss2d(*params)(*np.indices(GaussCrop.shape)) - GaussCrop
-    )
-
-    bounds = (
-        [0, 0, GaussCrop.shape[0] * 0.25, GaussCrop.shape[0] * 0.25, 0],
-        [
-            GaussCrop.max(),
-            np.inf,
-            GaussCrop.shape[0] * 0.75,
-            GaussCrop.shape[0] * 0.75,
-            GaussCrop.shape[0] / 2,
-        ],
-    )
-    result = optimize.least_squares(errorfunc, params_ini)
-    background, height, centerx, centery, sigma = result.x
-
-    return (
-        initial_x + (centerx - math.floor(GaussCrop.shape[0] / 2)),
-        initial_y + (centery - math.floor(GaussCrop.shape[0] / 2)),
-        sigma,
-        height,
-    )
-
-
-def main():
-    file = "/Volumes/AnalysisGG/PROCESSED_DATA/CondensateAnalysis/Dcp1a-2x-2s/20221015-UGD-100msexposure-2sperframe-FOV-1.tif"
-    blob_log_threshold = 0.001
-    max_sig = 10
-    chunksize = 1000
-
-    video = imread(file)
-
-    lst_x = []
-    lst_y = []
-    lst_sigma = []
-    lst_height = []
-    timestamp = []
-
-    with Progress() as progress:
-        task = progress.add_task(
-            "Processing...", total=video.shape[0], auto_refresh=False
+    # Gauss Fit
+    centerx = []
+    centery = []
+    sigmax = []
+    sigmay = []
+    lst_chisqr = []
+    fitx = []
+    fity = []
+    for GaussCrop, blob in zip(lst_GaussCrop, blobs):
+        initial_x, initial_y, initial_sigma = blob
+        GaussCrop = GaussCrop - GaussCrop.min()
+        # call lmfit model
+        model = Gaussian2dModel()
+        # vectorize image
+        xx, yy = np.meshgrid(
+            np.arange(GaussCrop.shape[0]), np.arange(GaussCrop.shape[1])
         )
-        for t in np.arange(video.shape[0]):
-            frame = video[t]
-            blobs = blob_log(
-                frame, threshold=blob_log_threshold, exclude_border=5, max_sigma=max_sig
-            )
-            # Exclude bright PBs
-            blobs = blobs[blobs[:, 2] < 3]
-            lst_GaussCrop = []
-            for initial_x, initial_y, initial_sigma in blobs:
-                # crop_size = math.ceil(initial_sigma + 1)
-                GaussCrop = frame[
-                    int(initial_x) - 3 : int(initial_x) + 4,
-                    int(initial_y) - 3 : int(initial_y) + 4,
-                ]
-                if GaussCrop.size > 0:
-                    # This mean a large blob is NOT near boundary and a full crop CAN be obtained
-                    lst_GaussCrop.append(GaussCrop)
+        vev_x = np.reshape(xx, -1)
+        vev_y = np.reshape(yy, -1)
+        vec_img = np.reshape(GaussCrop, -1)
+        # fit with lmfit
+        params = model.guess(vec_img, vev_x, vev_y)
+        params["centerx"].set(min=0.5 * crop_size, max=1.5 * crop_size)
+        params["centery"].set(min=0.5 * crop_size, max=1.5 * crop_size)
+        params["sigmax"].set(min=0, max=1.5 * initial_sigma)
+        params["sigmay"].set(min=0, max=1.5 * initial_sigma)
+        weights = 1 / np.sqrt(vec_img + 1)
+        result = model.fit(vec_img, x=vev_x, y=vev_y, params=params, weights=weights)
+        # result = model.fit(vec_img, x=vev_x, y=vev_y, params=params)
 
-            arguments = [
-                (GaussCrop, blob) for GaussCrop, blob in zip(lst_GaussCrop, blobs)
-            ]
+        lst_chisqr.append(result.chisqr)
+        fitx.append(result.best_values["centerx"] + initial_x - crop_size)
+        fity.append(result.best_values["centery"] + initial_y - crop_size)
+        if result.chisqr < chisqr_threshold:
+            # if False:
+            centerx.append(result.best_values["centerx"] + initial_x - crop_size)
+            centery.append(result.best_values["centery"] + initial_y - crop_size)
+            sigmax.append(result.best_values["sigmax"])
+            sigmay.append(result.best_values["sigmay"])
+        else:
+            centerx.append(initial_x)
+            centery.append(initial_y)
+            # centerx.append(result.best_values["centerx"] + initial_x - crop_size)
+            # centery.append(result.best_values["centery"] + initial_y - crop_size)
+            sigmax.append(initial_sigma)
+            sigmay.append(initial_sigma)
 
-            with concurrent.futures.ProcessPoolExecutor() as executor:
-                for result in executor.map(
-                    fit_single_blob, arguments, chunksize=chunksize
-                ):
-                    fitted_x, fitted_y, sigma, height = result
-                    lst_x.append(fitted_x)
-                    lst_y.append(fitted_y)
-                    lst_sigma.append(sigma)
-                    lst_height.append(height)
-                    timestamp.append(t)
-
-            if __name__ == "__main__":
-                progress.update(task, advance=1)
-                progress.refresh()
-
-    df = pd.DataFrame(
+    df_result = pd.DataFrame(
         {
-            "t": timestamp,
-            "x": lst_x,
-            "y": lst_y,
-            "sigma": lst_sigma,
-            "height": lst_height,
+            "centerx": centerx,
+            "centery": centery,
+            "sigmax": sigmax,
+            "sigmay": sigmay,
+            "chisqr": lst_chisqr,
+            "fitx": fitx,
+            "fity": fity,
         },
         dtype=float,
     )
-    df.to_csv(file.strip(".tif") + ".csv", index=False)
+    fpath_save = fpath[:-4] + "_GaussFit.csv"
+    df_result.to_csv(fpath_save, index=False)
 
+    fig, ax = plt.subplots()
+    if rescale_contrast:
+        # Contrast stretching
+        p1, p2 = np.percentile(img, (plow, phigh))
+        img_rescale = exposure.rescale_intensity(img, in_range=(p1, p2))
+        ax.imshow(img_rescale, cmap="gray")
+    else:
+        ax.imshow(img, cmap="gray")
 
-if __name__ == "__main__":
-    main()
+    for _, row in df_result.iterrows():
+        x, y, sigmax, sigmay, _, _, _ = row
+        condensate = Ellipse(
+            (y, x),
+            Nsigma * sigmax,
+            Nsigma * sigmay,
+            color="firebrick",
+            fill=False,
+            lw=2,
+        )  # plot as FWHM
+        ax.add_patch(condensate)
+
+    plt.xlim(0, img_denoised.shape[0])
+    plt.ylim(0, img_denoised.shape[1])
+    plt.tight_layout()
+    plt.axis("scaled")
+    plt.axis("off")
+    fpath_save = fpath[:-4] + "_GaussFit.png"
+    plt.savefig(fpath_save, format="png", bbox_inches="tight", dpi=300)
