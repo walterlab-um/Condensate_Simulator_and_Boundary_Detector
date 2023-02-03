@@ -87,7 +87,7 @@ for index, contours in zip(np.array(lst_index, dtype=int), lst_contours):
     d2edge = []
     for cnt_x, cnt_y in cnt_reshaped:
         d2edge.append(
-            truth_r_nm - np.sqrt((cnt_x - truth_x_nm) ** 2 + (cnt_y - truth_y_nm) ** 2)
+            np.sqrt((cnt_x - truth_x_nm) ** 2 + (cnt_y - truth_y_nm) ** 2) - truth_r_nm
         )
     distance2edge.append(np.array(d2edge))
 
