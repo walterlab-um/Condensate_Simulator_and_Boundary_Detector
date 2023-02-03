@@ -16,7 +16,7 @@ med_size = 3  # pixels
 threshold = 0.77  # threshold * (max - min) + min
 min_intensity = 0  # filter on average intensity within a contour
 
-dilation = True
+dilation = False
 morph_shape = cv2.MORPH_ELLIPSE
 dilatation_size = 1
 

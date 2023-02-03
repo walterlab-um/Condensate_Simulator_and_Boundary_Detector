@@ -21,7 +21,7 @@ L2gradient = True
 
 min_intensity = 0  # filter on average intensity within a contour
 
-dilation = True
+dilation = False
 morph_shape = cv2.MORPH_ELLIPSE
 dilatation_size = 1
 
@@ -40,7 +40,7 @@ lst_tifs = [
 #     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-large.tif"
 # ]
 
-switch_plot = True  # a switch to turn off plotting
+switch_plot = False  # a switch to turn off plotting
 
 ####################################
 # Functions
