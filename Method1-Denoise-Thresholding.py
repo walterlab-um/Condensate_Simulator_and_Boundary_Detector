@@ -1,5 +1,6 @@
 from tkinter import filedialog as fd
-import pandas as pd
+from os.path import dirname, join
+import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,7 +24,11 @@ rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
 phigh = 95
 
-lst_tifs = list(fd.askopenfilenames())
+folder = fd.askdirectory(
+    initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
+)
+os.chdir(folder)
+lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
 # lst_tifs = [
 #     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
 # ]
@@ -123,5 +128,5 @@ for fpath in track(lst_tifs):
     fpath_img = fpath[:-4] + "_Denoise_Threshold.png"
     pltcontours(img_raw, contours_final, fpath_img)
 
-fpath_pkl = fpath[:-4] + "Contours_Denoise_Threshold.pkl"
+fpath_pkl = join(dirname(fpath), "Contours_Denoise_Threshold.pkl")
 pickle.dump([lst_index, lst_contours], open(fpath_pkl, "wb"))
