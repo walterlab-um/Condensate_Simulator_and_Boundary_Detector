@@ -8,9 +8,10 @@ import seaborn as sns
 
 sns.set(color_codes=True, style="white")
 
-folder = fd.askdirectory(
-    initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
-)
+# folder = fd.askdirectory(
+#     initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
+# )
+folder = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/mimic_Dcp1a_HOPS/test_100"
 os.chdir(folder)
 
 
@@ -85,9 +86,14 @@ for index, contours in zip(np.array(lst_index, dtype=int), lst_contours):
     # distance to edge, for each vertex
     cnt_reshaped = np.reshape(cnt, (cnt.shape[0], cnt.shape[2]))
     d2edge = []
+
     for cnt_x, cnt_y in cnt_reshaped:
         d2edge.append(
-            np.sqrt((cnt_x - truth_x_nm) ** 2 + (cnt_y - truth_y_nm) ** 2) - truth_r_nm
+            np.sqrt(
+                (cnt_x * real_img_pxlsize - truth_x_nm) ** 2
+                + (cnt_y * real_img_pxlsize - truth_y_nm) ** 2
+            )
+            - truth_r_nm
         )
     distance2edge.append(np.array(d2edge))
 
