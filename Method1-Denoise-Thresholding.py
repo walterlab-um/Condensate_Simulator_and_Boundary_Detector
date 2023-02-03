@@ -1,10 +1,12 @@
 from tkinter import filedialog as fd
+import pandas as pd
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import exposure
 from scipy.signal import medfilt
 from tifffile import imread
+import pickle
 from rich.progress import track
 
 ####################################
@@ -21,10 +23,10 @@ rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
 phigh = 95
 
-# lst_tifs = list(fd.askopenfilenames())
-lst_tifs = [
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
-]
+lst_tifs = list(fd.askopenfilenames())
+# lst_tifs = [
+#     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
+# ]
 
 ####################################
 # Functions
@@ -64,6 +66,7 @@ def pltcontours(img, contours, fsave):
     plt.axis("scaled")
     plt.axis("off")
     plt.savefig(fsave, format="png", bbox_inches="tight", dpi=300)
+    plt.close()
 
 
 def cnt2mask(imgshape, contours):
@@ -93,7 +96,10 @@ def mask_dilation(mask_in):
 
 ####################################
 # Main
+lst_index = []
+lst_contours = []
 for fpath in track(lst_tifs):
+    index = fpath.split("FOVindex-")[-1][:-4]
     img_raw = imread(fpath)
     img_denoise = medfilt(img_raw, med_size)
     edges = (
@@ -103,7 +109,6 @@ for fpath in track(lst_tifs):
     edges = edges * 1
     # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
     contours, _ = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-    print("Total Number of Contours Found: ", str(len(contours)))
 
     # Merge overlapping contours, and dilation by 1 pixel
     mask = cnt2mask(img_raw.shape, contours)
@@ -111,5 +116,12 @@ for fpath in track(lst_tifs):
     contours_final, _ = cv2.findContours(
         mask_dilated, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE
     )
+
+    lst_index.append(index)
+    lst_contours.append(contours_final)
+
     fpath_img = fpath[:-4] + "_Denoise_Threshold.png"
     pltcontours(img_raw, contours_final, fpath_img)
+
+fpath_pkl = fpath[:-4] + "Contours_Denoise_Threshold.pkl"
+pickle.dump([lst_index, lst_contours], open(fpath_pkl, "wb"))
