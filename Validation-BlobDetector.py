@@ -23,10 +23,12 @@ df_truth = pd.read_csv(path_groundtruth, dtype=float)
 
 
 def when_failed():
-    global success, areas, distance2center, centroid, real_center
+    global success, areas, aspect_ratio, distance2center, distance2edge, centroid, real_center
     success.append(False)
     areas.append(np.nan)
+    aspect_ratio.append(np.nan)
     distance2center.append(np.nan)
+    distance2edge.append(np.nan)
     centroid.append(np.nan)
     real_center.append(np.nan)
 
@@ -34,7 +36,9 @@ def when_failed():
 lst_index = df_truth.FOVindex.to_numpy(dtype=float)
 success = []
 areas = []  # area of contours
+aspect_ratio = []
 distance2center = []
+distance2edge = []
 centroid = []
 real_center = []
 for index in track(lst_index):
@@ -61,9 +65,14 @@ for index in track(lst_index):
     distance2center.append(d2center)
     area = np.pi * rx * ry
 
+    # distance to edge defined as differece to R
+    d2edge = np.sqrt((cx - truth_x_nm) ** 2 + (cy - truth_y_nm) ** 2) - truth_r_nm
+    distance2edge.append(d2edge)
+
     # save
     success.append(True)
     areas.append(area)
+    aspect_ratio.append(min(rx, ry) / max(rx, ry))
     centroid.append((cx, cy))
     real_center.append((truth_x_nm, truth_y_nm))
 
@@ -73,7 +82,9 @@ df_save = pd.DataFrame(
         "index": lst_index,
         "success": success,
         "area_nm2": areas,
+        "aspect_ratio": aspect_ratio,
         "distance2center": distance2center,
+        "distance2edge": distance2edge,
         "centroid": centroid,
         "real_center": real_center,
     },
