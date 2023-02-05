@@ -8,7 +8,7 @@ from rich.progress import track
 
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
 fovsize = 5000  # unit: nm
-Nsigma = 3  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
+Nsigma = 2.355  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
 
 folder = fd.askdirectory(
     initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
