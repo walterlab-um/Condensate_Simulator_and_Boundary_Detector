@@ -63,7 +63,7 @@ for idx in track(range(frames_condensate.shape[0])):
     vmin, vmax = np.percentile(img, (0.05, 99))
     plt.imshow(img, cmap="Blues", vmin=vmin, vmax=vmax)
     plt.axis("scaled")
-    plt.axis("off")
+    # plt.axis("off")
     plt.gca().invert_yaxis()  # must invert AFTER xlim, otherwise it goes back uninverted
     plt.savefig(fname_save, format="png", bbox_inches="tight")
     plt.close()
@@ -94,7 +94,7 @@ for idx in track(range(frames_condensate.shape[0])):
     vmin, vmax = np.percentile(img, (0.05, 99))
     plt.imshow(img, cmap="Reds", vmin=vmin, vmax=vmax)
     plt.axis("scaled")
-    plt.axis("off")
+    # plt.axis("off")
     plt.gca().invert_yaxis()  # must invert AFTER xlim, otherwise it goes back uninverted
     plt.savefig(fname_save, format="png", bbox_inches="tight")
     plt.close()
@@ -126,7 +126,7 @@ for idx in track(range(frames_condensate.shape[0])):
     y = current_track.y.to_numpy(dtype=float)
     size = current_track["size"].to_numpy(dtype=float)[-1]
     plt.plot(x, y, ls="-", lw=1, color=color, alpha=0.3)
-    plt.scatter(x[-1], y[-1], s=size * 10000, color=color, alpha=0.3)
+    plt.scatter(x[-1], y[-1], s=size * 5000, color=color, alpha=0.3)
 
     current_track = tracks_RNA[tracks_RNA["frame"] <= idx]
     color = "firebrick"
@@ -136,7 +136,7 @@ for idx in track(range(frames_condensate.shape[0])):
     plt.plot(x, y, ls="-", lw=1, color=color)
     plt.scatter(x[-1], y[-1], s=200, color=color)
     plt.axis("scaled")
-    plt.xlim(0, frames_condensate.shape[1])
-    plt.ylim(0, frames_condensate.shape[2])
+    plt.xlim(-0.5, frames_condensate.shape[1] - 0.5)
+    plt.ylim(-0.5, frames_condensate.shape[2] - 0.5)
     plt.savefig(fname_save, format="png", bbox_inches="tight")
     plt.close()
