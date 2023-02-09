@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 import pims
 import trackpy as tp
-import matplotlib as mpl
+import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
+from rich.progress import track
 
 tp.quiet()
 
@@ -30,16 +31,27 @@ frames_RNA = pims.open(path_RNA)
 # index = 6
 # f = tp.locate(frames[index], diameter=5, separation=3, minmass=5e5, preprocess=False)
 # tp.annotate(f, frames[index])
-spots_RNA = tp.batch(
+spots = tp.batch(
     frames_RNA, diameter=5, separation=3, minmass=4e5, preprocess=False, processes=1
 )
-tracks = tp.link(spots_RNA, search_range=3)
+tracks = tp.link(spots, search_range=3)
 tracks_RNA = tp.filter_stubs(tracks, threshold=5)
-tracks_RNA.to_csv("tracks.csv", index=False)
+tracks_RNA.to_csv("tracks_RNA.csv", index=False)
+
+spots = tp.batch(
+    frames_condensate,
+    diameter=11,
+    separation=3,
+    minmass=4e5,
+    preprocess=False,
+    processes=1,
+)
+tracks = tp.link(spots, search_range=3)
+tracks_condensate = tp.filter_stubs(tracks, threshold=5)
+tracks_RNA.to_csv("tracks_RNA.csv", index=False)
 
 
-idx = 1
-for idx in range(tracks_RNA.shape[0]):
+for idx in track(range(frames_condensate.shape[0])):
     if idx % 5 != 0:
         continue
 
@@ -66,3 +78,7 @@ for idx in range(tracks_RNA.shape[0]):
     plt.axis("off")
     plt.savefig(fname_save, format="png", bbox_inches="tight")
     plt.close()
+
+
+# prepare colors for both tracks
+colors_condensate = pl.cm.jet(np.linspace(0, 1, n))
