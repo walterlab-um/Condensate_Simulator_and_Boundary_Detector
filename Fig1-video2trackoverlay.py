@@ -11,8 +11,8 @@ from rich.progress import track
 
 tp.quiet()
 
-path_RNA = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Example-Slow Dwelling-bandpass-RNA.tif"
-path_condensate = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Example-Slow Dwelling-bandpass-condensate.tif"
+path_RNA = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-montage/Example-Slow Dwelling-bandpass-RNA.tif"
+path_condensate = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-montage/Example-Slow Dwelling-bandpass-condensate.tif"
 os.chdir(dirname(path_RNA))
 try:
     os.mkdir("montages")
