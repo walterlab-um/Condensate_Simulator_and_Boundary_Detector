@@ -11,7 +11,7 @@ from rich.progress import track
 ####################################
 # Parameters
 med_size = 3  # pixels
-threshold = 0.77  # threshold * (max - min) + min
+threshold = 0.55  # threshold * (max - min) + min
 min_intensity = 0  # filter on average intensity within a contour
 
 dilation = False
@@ -99,7 +99,8 @@ lst_contours = []
 for fpath in track(lst_tifs):
     index = fpath.split("FOVindex-")[-1][:-4]
     img_raw = imread(fpath)
-    img_denoise = medfilt(img_raw, med_size)
+    # img_denoise = medfilt(img_raw, med_size)
+    img_denoise = img_raw
     edges = (
         img_denoise
         > threshold * (img_denoise.max() - img_denoise.min()) + img_denoise.min()
