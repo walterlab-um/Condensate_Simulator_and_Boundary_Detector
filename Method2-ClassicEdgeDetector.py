@@ -11,12 +11,12 @@ from rich.progress import track
 # Parameters
 med_size = 3  # pixels, denoise
 # Canny edge detection parameters
-cannythresh1 = 50
+cannythresh1 = 100
 cannythresh2 = 3000
 SobelSize = 7  # 3/5/7
 L2gradient = True
 
-min_intensity = 0  # filter on average intensity within a contour
+min_intensity = 10  # filter on average intensity within a contour
 
 dilation = False
 morph_shape = cv2.MORPH_ELLIPSE
