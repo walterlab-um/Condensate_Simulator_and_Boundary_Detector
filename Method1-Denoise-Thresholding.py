@@ -18,7 +18,6 @@ dilation = False
 morph_shape = cv2.MORPH_ELLIPSE
 dilatation_size = 1
 
-rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 
