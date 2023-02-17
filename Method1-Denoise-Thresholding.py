@@ -1,10 +1,8 @@
 from tkinter import filedialog as fd
-from os.path import dirname, join
 import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import exposure
 from scipy.signal import medfilt
 from tifffile import imread
 import pickle
@@ -24,18 +22,14 @@ rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 
-folder = fd.askdirectory(
-    initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
-)
+folder = fd.askdirectory()
 os.chdir(folder)
-lst_tifs = [
-    f for f in os.listdir(folder) if f.endswith(".tif") and f.startswith("final-")
-]
+lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
 # lst_tifs = [
 #     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
 # ]
 
-switch_plot = False  # a switch to turn off plotting
+switch_plot = True  # a switch to turn off plotting
 
 ####################################
 # Functions
@@ -51,13 +45,9 @@ def cnt_fill(imgshape, cnt):
 def pltcontours(img, contours, fsave):
     global rescale_contrast, plow, phigh, min_intensity
     plt.figure(dpi=300)
-    if rescale_contrast:
-        # Contrast stretching
-        p1, p2 = np.percentile(img, (plow, phigh))
-        img_rescale = exposure.rescale_intensity(img, in_range=(p1, p2))
-        plt.imshow(img_rescale, cmap="gray")
-    else:
-        plt.imshow(img, cmap="gray")
+    # Contrast stretching
+    vmin, vmax = np.percentile(img, (plow, phigh))
+    plt.imshow(img, cmap="Blues", vmin=vmin, vmax=vmax)
     for cnt in contours:
         # make mask for intensity calculations
         mask = cnt_fill(img.shape, cnt)
@@ -135,5 +125,4 @@ for fpath in track(lst_tifs):
     else:
         continue
 
-fpath_pkl = join(dirname(fpath), "Contours_Denoise_Threshold.pkl")
-pickle.dump([lst_index, lst_contours], open(fpath_pkl, "wb"))
+pickle.dump([lst_index, lst_contours], open("Contours_Denoise_Threshold.pkl", "wb"))
