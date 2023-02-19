@@ -10,12 +10,10 @@ from tifffile import imread
 
 ####################################
 # Parameters
-# Denoise
-med_size = 3  # pixels
-# Gauss_size = 2  # pixels
+
 # DoG detector
-blob_LoG_threshold = 5
-max_sig = 5
+blob_LoG_threshold = 0.1
+max_sig = 10
 # Gauss Fit
 crop_size = 10  # pixels, half size of crop for Gauss fit
 chisqr_threshold = 100  # Goodness of fit
@@ -23,7 +21,7 @@ Nsigma = 3  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
 
 rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
-phigh = 99
+phigh = 95
 
 fpath = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-PB.tif"
 folder = dirname(fpath)
