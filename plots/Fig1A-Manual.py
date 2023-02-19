@@ -1,5 +1,5 @@
-import os
-from os.path import dirname, basename
+import cv2
+from os.path import dirname
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,45 +11,31 @@ rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
 phigh = 95
 
-fpath = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-HOPS.tif"
-folder = dirname(fpath)
-os.chdir(folder)
+fpath_img = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-HOPS.tif"
+fpath_mask = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-HOPS-mannual.tif"
+folder = dirname(fpath_img)
 
-lst_rois = [
-    f
-    for f in os.listdir(folder)
-    if (f.startswith(basename(fpath)[:-4]) & f.endswith(".txt"))
-]
-
-img = imread(fpath)
-
+img = imread(fpath_img)
+mask = cv2.imread(fpath_mask, cv2.IMREAD_GRAYSCALE)
+# mask_binary = cv2.threshold(mask, 1, 1, cv2.THRESH_BINARY)[1]
 
 fig, ax = plt.subplots()
 # Contrast stretching
 vmin, vmax = np.percentile(img, (plow, phigh))
 ax.imshow(img, cmap="Blues", vmin=vmin, vmax=vmax)
-for path_roi in lst_rois:
-    df_roi = pd.read_csv(path_roi, sep="	", header=None)
-    coords_roi_raw = []
-    for _, row in df_roi.iterrows():
-        current_coord = row.to_numpy(dtype=float)
-        # round up to int pixels
-        current_coord_round = np.around(current_coord)
-        coords_roi_raw.append(current_coord_round)
-    # Remove the duplicating roi coordinates after round, and return to original indexes
-    coords_roi_array = np.stack(coords_roi_raw)
-    _, indexes = np.unique(coords_roi_array, axis=0, return_index=True)
-    coords_roi_final = [coords_roi_array[index] for index in sorted(indexes)]
-    # Plot
-    # condensate = Polygon([tuple(row) for row in np.flip(coords_roi_final, 1)])
-    condensate = Polygon([tuple(row - 1) for row in coords_roi_final])
-    x, y = condensate.exterior.xy
-    ax.plot(x, y, "-k")
-
+contours, _ = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+for cnt in contours:
+    x = cnt[:, 0][:, 0]
+    y = cnt[:, 0][:, 1]
+    plt.plot(x, y, "k-", lw=2)
+    # still the last closing line will be missing, get it below
+    xlast = [x[-1], x[0]]
+    ylast = [y[-1], y[0]]
+    plt.plot(xlast, ylast, "k-", lw=2)
 plt.xlim(0, img.shape[0])
 plt.ylim(0, img.shape[1])
 plt.tight_layout()
 plt.axis("scaled")
 plt.axis("off")
-fpath_save = fpath[:-4] + "_Mannual.png"
+fpath_save = fpath_mask[:-4] + ".png"
 plt.savefig(fpath_save, format="png", bbox_inches="tight", dpi=300)
