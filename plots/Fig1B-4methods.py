@@ -1,7 +1,7 @@
+import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.cm import get_cmap
 from tifffile import imread
 
 plow = 0.05  # imshow intensity percentile
@@ -9,8 +9,9 @@ phigh = 95
 
 fpath_img = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-PB.tif"
 fpath_mask = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-HOPS-mannual.tif"
+os.chdir(os.path.dirname(fpath_img))
 
-img = imread(fpath_img)
+img = imread(fpath_img) / 10
 mask = cv2.imread(fpath_mask, cv2.IMREAD_GRAYSCALE)
 
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi=600)
@@ -22,22 +23,20 @@ surf = ax.plot_surface(
     linewidth=2,
     antialiased=False,
     cmap="Blues",
-    alpha=0.7,
+    alpha=1,
+    vmin=0,
+    vmax=img.max() * 0.9,
 )
-# ax.plot_wireframe(
-#     X,
-#     Y,
-#     img,
-#     color="black",
-#     alpha=0.5,
-#     lw=1,
-# )
-plt.xlabel("x")
-plt.ylabel("y")
-plt.xlim(0, img.shape[0])
-plt.ylim(0, img.shape[1])
-plt.tight_layout()
-# plt.axis("scaled")
-# plt.axis("off")
-fpath_save = fpath_img[:-4] + "-3d.png"
-plt.savefig(fpath_save, format="png", bbox_inches="tight", dpi=300)
+ax.xaxis.set_pane_color((0.9, 0.9, 0.9))
+ax.yaxis.set_pane_color((0.9, 0.9, 0.9))
+ax.zaxis.set_pane_color((0.9, 0.9, 0.9))
+plt.tick_params(labelsize=5, pad=0, direction="out")
+ax.set_xticks(np.arange(0, img.shape[1], 2))
+ax.set_yticks(np.arange(0, img.shape[0], 2))
+for line in ax.xaxis.get_ticklines():
+    line.set_visible(False)
+for line in ax.yaxis.get_ticklines():
+    line.set_visible(False)
+for line in ax.zaxis.get_ticklines():
+    line.set_visible(False)
+plt.savefig("Fig1B-1.png", format="png", bbox_inches="tight", transparent=True)
