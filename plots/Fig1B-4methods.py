@@ -213,3 +213,11 @@ plt.xlabel("")
 plt.ylabel("")
 plt.savefig("Fig1B-laplacian-GaussFit.png", format="png", bbox_inches="tight")
 plt.close()
+
+
+# kernels
+x = np.arange
+plt.figure(figsize=(5, 5), dpi=300)
+plt.axis("off")
+# plt.gca().spines.set_linewidth(3)
+plt.savefig("Fig1B-kernel-1.png", bbox_inches="tight", format="png")
