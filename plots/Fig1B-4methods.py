@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from scipy.ndimage import gaussian_filter1d
+from lmfit.models import GaussianModel, ConstantModel
 from tifffile import imread
 
 plow = 0.05  # imshow intensity percentile
@@ -155,12 +156,12 @@ fig.clear()
 
 # fig4
 plt.figure(figsize=(12, 4), dpi=300)
-intensity = img_HOPS[9, :]
+# intensity = img_HOPS[9, :]
 LoG = np.gradient(np.gradient(gaussian_filter1d(intensity, 1)))
-plt.plot(np.arange(13), LoG, lw=10, color="black")
+plt.plot(x, LoG, lw=10, color="black")
 plt.gca().spines["top"].set_visible(False)
 plt.gca().spines["right"].set_visible(False)
-plt.xlim(0, 12)
+plt.xlim(0, 24)
 plt.xlabel("")
 plt.ylabel("")
 plt.savefig("Fig1B-laplacian.png", format="png", bbox_inches="tight")
@@ -182,11 +183,32 @@ fig.savefig(
 )
 fig.clear()
 
-plt.figure(figsize=(5, 4), dpi=300)
-plt.plot(np.arange(5), img_HOPS[9, :5], lw=10, color="black")
+plt.figure(figsize=(12, 4), dpi=300)
+plt.plot(x, intensity, lw=10, color="black")
+
+mod = GaussianModel()
+pars = mod.guess(intensity, x=x)
+result = mod.fit(intensity, pars, x=x)
+
+plt.plot(
+    x,
+    result.best_fit,
+    color="firebrick",
+    linewidth=5,
+    ls="--",
+)
+
+plt.axvline(result.best_values["center"], color="gray", lw=0.1)
+plt.axvline(
+    result.best_values["center"] + result.best_values["sigma"], color="gray", lw=0.1
+)
+plt.axvline(
+    result.best_values["center"] - result.best_values["sigma"], color="gray", lw=0.1
+)
+
 plt.gca().spines["top"].set_visible(False)
 plt.gca().spines["right"].set_visible(False)
-plt.xlim(0, 4)
+plt.xlim(0, 24)
 plt.xlabel("")
 plt.ylabel("")
 plt.savefig("Fig1B-laplacian-GaussFit.png", format="png", bbox_inches="tight")
