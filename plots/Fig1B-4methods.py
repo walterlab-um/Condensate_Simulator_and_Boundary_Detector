@@ -4,8 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from scipy.ndimage import gaussian_filter1d
-from lmfit.models import GaussianModel, ConstantModel
+from lmfit.models import GaussianModel
 from tifffile import imread
+import pandas as pd
 
 plow = 0.05  # imshow intensity percentile
 phigh = 95
@@ -253,12 +254,13 @@ plt.axis("off")
 plt.savefig("Fig1B-ML-manualmask.png", bbox_inches="tight", format="png")
 plt.close()
 
-plt.figure(figsize=(5, 5), dpi=300)
-probability = cv2.imread(
-    "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-PB_Probabilities.tif",
-    cv2.IMREAD_GRAYSCALE,
+
+df = pd.read_csv(
+    "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/Fig1B-ML-probability.csv"
 )
-plt.imshow(probability, cmap="Oranges")
-plt.axis("off")
-plt.savefig("Fig1B-ML-probability.png", bbox_inches="tight", format="png")
+data = df["Gray_Value"].to_numpy(dtype=float)
+plt.figure(figsize=(12, 4), dpi=300)
+plt.plot(np.arange(data.shape[0]), data, lw=10, color="black")
+plot_style()
+plt.savefig("Fig1B-ML-probability.png", format="png", bbox_inches="tight")
 plt.close()
