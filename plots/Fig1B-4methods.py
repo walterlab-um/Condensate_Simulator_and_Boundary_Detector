@@ -12,12 +12,25 @@ phigh = 95
 
 fpath_img_PB = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-PB.tif"
 fpath_img_HOPS = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-HOPS.tif"
-fpath_mask = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-HOPS-mannual.tif"
+fpath_mask = "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-PB-mannual.tif"
 os.chdir(os.path.dirname(fpath_img_PB))
 
 img_PB = imread(fpath_img_PB) / 10
 img_HOPS = imread(fpath_img_HOPS)
 mask = cv2.imread(fpath_mask, cv2.IMREAD_GRAYSCALE)
+
+
+def plot_style():
+    plt.gca().spines["top"].set_visible(False)
+    plt.gca().spines["right"].set_visible(False)
+    plt.xlim(0, 24)
+    plt.locator_params(axis="y", nbins=3)
+    plt.locator_params(axis="x", nbins=4)
+    plt.yticks(fontsize=25, rotation="vertical", weight="bold", va="center")
+    plt.xticks(fontsize=25, weight="bold")
+    plt.xlabel("")
+    plt.ylabel("")
+
 
 # fig1
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi=600)
@@ -107,11 +120,7 @@ intensity = img_PB[13, :]
 smoothed = gaussian_filter1d(intensity, 2)
 x = np.arange(25)
 plt.plot(x, smoothed, lw=10, color="black")
-plt.gca().spines["top"].set_visible(False)
-plt.gca().spines["right"].set_visible(False)
-plt.xlim(0, 24)
-plt.xlabel("")
-plt.ylabel("")
+plot_style()
 plt.savefig("Fig1B-intensity.png", format="png", bbox_inches="tight")
 plt.close()
 
@@ -130,11 +139,7 @@ fig.clear()
 plt.figure(figsize=(12, 4), dpi=300)
 gradient = np.gradient(gaussian_filter1d(intensity, 2))
 plt.plot(x, gradient, lw=10, color="black")
-plt.gca().spines["top"].set_visible(False)
-plt.gca().spines["right"].set_visible(False)
-plt.xlim(0, 24)
-plt.xlabel("")
-plt.ylabel("")
+plot_style()
 plt.savefig("Fig1B-gradient.png", format="png", bbox_inches="tight")
 plt.close()
 
@@ -159,11 +164,7 @@ plt.figure(figsize=(12, 4), dpi=300)
 # intensity = img_HOPS[9, :]
 LoG = np.gradient(np.gradient(gaussian_filter1d(intensity, 1)))
 plt.plot(x, LoG, lw=10, color="black")
-plt.gca().spines["top"].set_visible(False)
-plt.gca().spines["right"].set_visible(False)
-plt.xlim(0, 24)
-plt.xlabel("")
-plt.ylabel("")
+plot_style()
 plt.savefig("Fig1B-laplacian.png", format="png", bbox_inches="tight")
 plt.close()
 
@@ -205,19 +206,59 @@ plt.axvline(
 plt.axvline(
     result.best_values["center"] - result.best_values["sigma"], color="gray", lw=0.1
 )
-
-plt.gca().spines["top"].set_visible(False)
-plt.gca().spines["right"].set_visible(False)
-plt.xlim(0, 24)
-plt.xlabel("")
-plt.ylabel("")
+plot_style()
 plt.savefig("Fig1B-laplacian-GaussFit.png", format="png", bbox_inches="tight")
 plt.close()
 
 
 # kernels
-x = np.arange
-plt.figure(figsize=(5, 5), dpi=300)
+x = np.linspace(-3, 3, 120)
+
+G = np.exp(-np.power(x - 0, 2) / (2 * np.power(1, 2)))
+plt.figure(figsize=(5, 5), dpi=300, linewidth=20, edgecolor="black")
+plt.plot(x, G, lw=5, color="black")
+plt.xlim(x.min(), x.max())
 plt.axis("off")
-# plt.gca().spines.set_linewidth(3)
 plt.savefig("Fig1B-kernel-1.png", bbox_inches="tight", format="png")
+plt.close()
+
+gofG = np.gradient(G)
+plt.figure(figsize=(5, 5), dpi=300, linewidth=20, edgecolor="black")
+plt.plot(x, gofG, lw=5, color="black")
+plt.xlim(x.min(), x.max())
+plt.axis("off")
+plt.savefig("Fig1B-kernel-2.png", bbox_inches="tight", format="png")
+plt.close()
+
+LoG = np.gradient(np.gradient(G))
+plt.figure(figsize=(5, 5), dpi=300, linewidth=20, edgecolor="black")
+plt.plot(x, LoG, lw=5, color="black")
+plt.xlim(x.min(), x.max())
+plt.axis("off")
+plt.savefig("Fig1B-kernel-3.png", bbox_inches="tight", format="png")
+plt.close()
+
+# last panel: manual labeling and ML
+plt.figure(figsize=(5, 5), dpi=300)
+vmin, vmax = np.percentile(img_PB, (plow, phigh))
+plt.imshow(img_PB, cmap="Blues", vmin=vmin, vmax=vmax)
+plt.axis("off")
+plt.savefig("Fig1B-ML-orginal.png", bbox_inches="tight", format="png")
+plt.close()
+
+plt.figure(figsize=(5, 5), dpi=300)
+plt.imshow(img_PB, cmap="Blues", vmin=vmin, vmax=vmax)
+plt.imshow(mask, cmap="Oranges", alpha=0.3, vmax=2)
+plt.axis("off")
+plt.savefig("Fig1B-ML-manualmask.png", bbox_inches="tight", format="png")
+plt.close()
+
+plt.figure(figsize=(5, 5), dpi=300)
+probability = cv2.imread(
+    "/Users/GGM/Documents/Graduate_Work/Nils_Walter_Lab/Writing/MyPublications/ResearchArticle-JPCB/figure-materials/Fig1-detailed4methods/RealData-PB_Probabilities.tif",
+    cv2.IMREAD_GRAYSCALE,
+)
+plt.imshow(probability, cmap="Oranges")
+plt.axis("off")
+plt.savefig("Fig1B-ML-probability.png", bbox_inches="tight", format="png")
+plt.close()
