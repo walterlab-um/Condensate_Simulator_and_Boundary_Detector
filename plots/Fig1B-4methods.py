@@ -52,9 +52,20 @@ ax.plot(
     xs=np.arange(25),
     ys=img_PB[13, :],
     zdir="y",
-    zs=25,
+    zs=13,
     color="black",
     lw=3,
+)
+xx, zz = np.meshgrid(np.arange(25), np.linspace(img_PB.min(), img_PB.max() + 50, 25))
+yy = np.ones((25, 25)) * 13
+ax.plot_surface(
+    xx,
+    yy,
+    zz,
+    antialiased=True,
+    lw=0,
+    alpha=0.3,
+    color="gray",
 )
 ax.xaxis.set_pane_color((0.9, 0.9, 0.9))
 ax.yaxis.set_pane_color((0.9, 0.9, 0.9))
@@ -68,9 +79,9 @@ for line in ax.yaxis.get_ticklines():
     line.set_visible(False)
 for line in ax.zaxis.get_ticklines():
     line.set_visible(False)
-ax.view_init(elev=20, azim=-55, roll=0)
+ax.view_init(elev=20, azim=-45, roll=0)
 plt.savefig(
-    "Fig1B-3dsurface-PB.png", format="png", bbox_inches="tight", transparent=True
+    "Fig1B-3dsurface-PB-final.png", format="png", bbox_inches="tight", transparent=True
 )
 plt.close()
 
