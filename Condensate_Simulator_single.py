@@ -84,16 +84,23 @@ for current_fov in track(index):
     # extract condensate ground truth for current FOV
     df_current = df_groundtruth[df_groundtruth.FOVindex == current_fov]
     fovsize_pxl = int(fovsize / truth_img_pxlsize)
-    pxl_x, pxl_y = np.meshgrid(np.arange(fovsize_pxl), np.arange(fovsize_pxl))
+    pxl_x, pxl_y, pxl_z = np.meshgrid(
+        np.arange(fovsize_pxl), np.arange(fovsize_pxl), np.arange(fovsize_pxl)
+    )
     center_x_pxl = df_current.x_nm.squeeze() / truth_img_pxlsize
     center_y_pxl = df_current.y_nm.squeeze() / truth_img_pxlsize
+    center_z_pxl = (fovsize / 2) / truth_img_pxlsize
     r_pxl = df_current.r_nm.squeeze() / truth_img_pxlsize
     depth_of_focus_pxl = depth_of_focus / truth_img_pxlsize
 
     #################################################
-    # Step 2: Ground truth high-resolution image
+    # Step 2: Ground truth high-resolution volume "image"
     # baesd on a spherecal volume projection model: height = 2 * sqrt(r^2-d^2), only when d < r, thus need a mask for condensate
-    distance_square = (pxl_x - center_x_pxl) ** 2 + (pxl_y - center_y_pxl) ** 2
+    distance_square = (
+        (pxl_x - center_x_pxl) ** 2
+        + (pxl_y - center_y_pxl) ** 2
+        + (pxl_z - center_z_pxl) ** 2
+    )
     condensate_mask = distance_square < r_pxl**2
 
     if 2 * r_pxl < depth_of_focus_pxl:  # small condensate
@@ -118,6 +125,7 @@ for current_fov in track(index):
         + volume_density_out * C_dilute
         + (1 - condensate_mask) * C_dilute * depth_of_focus
     )
+
     img_truth = img_truth.astype("uint16")
 
     # Save ground truth, high-resolution image
