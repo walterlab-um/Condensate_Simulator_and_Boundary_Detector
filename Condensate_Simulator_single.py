@@ -37,12 +37,8 @@ sigma_axial = (2 * np.sqrt(6) * refractive_index) / (k_em * Numerical_Aperature*
 condensate_r_ave = 200  # average size of condensates, unit: nm
 condensate_r_sigma = condensate_r_ave / 5
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-C_condensed = 1  # Maintain this at 1 to prevent exceeding uint16
-C_dilute = (
-    0.01  # Note the concentraion here is the relative concentration to C_condense
-)
-# C_condensed = 0
-# C_dilute = 0
+C_condensed = 100  # N.A. unit
+C_dilute = 30
 
 
 #################################################
