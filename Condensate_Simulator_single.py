@@ -102,30 +102,7 @@ for current_fov in track(index):
         + (pxl_z - center_z_pxl) ** 2
     )
     condensate_mask = distance_square < r_pxl**2
-
-    if 2 * r_pxl < depth_of_focus_pxl:  # small condensate
-        # density inside condensate region and inside condensate
-        volume_density_in = (
-            2 * np.sqrt(np.abs(r_pxl**2 - distance_square)) * condensate_mask
-        )
-        # density inside condensate region but above/below condensate
-        volume_density_out = (depth_of_focus_pxl - volume_density_in) * condensate_mask
-
-    elif 2 * r_pxl > depth_of_focus_pxl:  # large condensate
-        # density inside condensate region and inside condensate
-        volume_density_in = (
-            2 * np.sqrt(np.abs(r_pxl**2 - distance_square)) * condensate_mask
-        )
-        volume_density_in[volume_density_in > depth_of_focus_pxl] = depth_of_focus_pxl
-        # density inside condensate region but above/below condensate
-        volume_density_out = (depth_of_focus_pxl - volume_density_in) * condensate_mask
-
-    img_truth = (
-        volume_density_in * C_condensed
-        + volume_density_out * C_dilute
-        + (1 - condensate_mask) * C_dilute * depth_of_focus
-    )
-
+    img_truth = condensate_mask * C_condensed + (1 - condensate_mask) * C_dilute
     img_truth = img_truth.astype("uint16")
 
     # Save ground truth, high-resolution image
@@ -153,9 +130,10 @@ for current_fov in track(index):
                 )
                 / (ratio**2)
             )
-    img_shrinked = (
-        np.array(lst_pxl_value).reshape((fovsize_pxl, fovsize_pxl)) * laser_power
-    )
+    # img_shrinked = (
+    #     np.array(lst_pxl_value).reshape((fovsize_pxl, fovsize_pxl)) * laser_power
+    # )
+    img_shrinked = np.array(lst_pxl_value).reshape((fovsize_pxl, fovsize_pxl))
     poisson_noise = poisson(lam=poisson_noise_lambda, size=img_shrinked.shape)
     poisson_noise[poisson_noise > 65535] = 0  # Trim off extreme values exceeding uint16
     img_shot = img_shrinked.astype("uint16") + poisson_noise.astype("uint16")
