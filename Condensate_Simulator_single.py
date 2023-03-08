@@ -9,12 +9,30 @@ from rich.progress import track
 
 ##################################
 folder_save = dirname(realpath(__file__))
-# FOV parameters
+## FOV parameters
 fovsize = 5000  # unit: nm
 truth_img_pxlsize = 10  # unit: nm
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
 N_fov = 1  # number of total im
-# Condensate parameters
+
+## Imaging system parameters
+laser_power = 11  # mimic experiment data intensity by changing this
+# Microscope parameters
+depth_of_focus = 500  # unit, nm
+Numerical_Aperature = 1.5
+refractive_index = 1.515
+emission_wavelength = 520  # assuming Alexa488, unit: nm
+# Noise parameters
+poisson_noise_lambda = 5  # Shot noise, exp() of Poisson distribution
+gaussian_noise_mean = 400
+gaussian_noise_sigma = 5  # white noise
+# PSF approximations, Ref doi: 10.1364/AO.46.001819
+k_em = (2 * np.pi) / emission_wavelength
+sigma_lateral = np.sqrt(2) / (k_em * Numerical_Aperature)
+sigma_axial = (2 * np.sqrt(6) * refractive_index) / (k_em * Numerical_Aperature**2)
+
+
+## Condensate parameters
 # condensate size follows Gaussian distribution
 condensate_r_ave = 200  # average size of condensates, unit: nm
 condensate_r_sigma = condensate_r_ave / 5
@@ -25,17 +43,6 @@ C_dilute = (
 )
 # C_condensed = 0
 # C_dilute = 0
-laser_power = 11  # mimic experiment data intensity by changing this
-# Microscope parameters
-depth_of_focus = (
-    500  # unit, nm, theoretical estimators of DOF are complicated, here assume 0.5 um
-)
-Numerical_Aperature = 1.5
-emission_wavelength = 488  # unit: nm
-sigma_PSF = 0.21 * emission_wavelength / Numerical_Aperature
-poisson_noise_lambda = 5  # Shot noise, exp() of Poisson distribution
-gaussian_noise_mean = 400
-gaussian_noise_sigma = 5  # white noise
 
 
 #################################################
