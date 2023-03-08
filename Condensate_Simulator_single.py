@@ -101,10 +101,6 @@ for current_fov in track(index):
     img_truth = condensate_mask * C_condensed + (1 - condensate_mask) * C_dilute
     img_truth = img_truth.astype("uint16")
 
-    # Save ground truth, high-resolution image
-    path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(path_save, img_truth, imagej=True)
-
     #################################################
     # Step 3: simulated 'real' image
 
