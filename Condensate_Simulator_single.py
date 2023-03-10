@@ -11,7 +11,7 @@ from rich.progress import track
 # folder_save = dirname(realpath(__file__))
 folder_save = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection"
 ## FOV parameters
-fovsize = 1000  # unit: nm
+fovsize = 2000  # unit: nm
 truth_box_pxlsize = 10  # unit: nm
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_box_pxlsize
 N_fov = 1  # number of total im
@@ -23,7 +23,7 @@ Numerical_Aperature = 1.5
 refractive_index = 1.515
 emission_wavelength = 520  # assuming Alexa488, unit: nm
 # Noise parameters
-poisson_noise_lambda = 5  # Shot noise, exp() of Poisson distribution
+poisson_noise_lambda = 1  # Shot noise, lamda should within (0,1]
 gaussian_noise_mean = 400
 gaussian_noise_sigma = 5  # white noise
 # PSF approximations, Ref doi: 10.1364/AO.46.001819
@@ -40,11 +40,11 @@ depth_of_focus = depth_of_focus / truth_box_pxlsize
 
 ## Condensate parameters
 # condensate size follows Gaussian distribution
-condensate_r_ave = 300  # average size of condensates, unit: nm
+condensate_r_ave = 500  # average size of condensates, unit: nm
 condensate_r_sigma = condensate_r_ave / 5
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-C_condensed = 500  # N.A. unit
-C_dilute = 10
+C_condensed = 300  # N.A. unit
+C_dilute = 50
 
 
 #################################################
@@ -155,13 +155,14 @@ for current_fov in track(index):
                         ratio * xx : ratio * (xx + 1), ratio * yy : ratio * (yy + 1)
                     ]
                 )
-                / (ratio**2)
             )
     img_shrinked = np.array(lst_pxl_value).reshape((fovsize_real, fovsize_real))
     gaussian_noise = normal(
         gaussian_noise_mean, gaussian_noise_sigma, img_shrinked.shape
     )
-    img_gaussian = img_shrinked + gaussian_noise.astype("uint16")
+    img_gaussian = img_shrinked + gaussian_noise
+    poisson_mask = poisson(img_gaussian * poisson_noise_lambda)
+    img_final = img_gaussian + poisson_mask
 
     path_save = join(folder_save, "shrinked-FOVindex-" + str(current_fov) + ".tif")
     imwrite(
@@ -177,9 +178,9 @@ for current_fov in track(index):
         imagej=True,
     )
 
-    # path_save = join(folder_save, "final-FOVindex-" + str(current_fov) + ".tif")
-    # imwrite(
-    #     path_save,
-    #     img_shot_gaussian,
-    #     imagej=True,
-    # )
+    path_save = join(folder_save, "final-FOVindex-" + str(current_fov) + ".tif")
+    imwrite(
+        path_save,
+        img_final.astype("uint16"),
+        imagej=True,
+    )
