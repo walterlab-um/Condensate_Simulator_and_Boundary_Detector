@@ -23,7 +23,7 @@ Numerical_Aperature = 1.5
 refractive_index = 1.515
 emission_wavelength = 520  # assuming Alexa488, unit: nm
 # Noise parameters
-poisson_noise_lambda = 1  # Shot noise, lamda should within (0,1]
+poisson_lambda = 1.2
 gaussian_noise_mean = 400
 gaussian_noise_sigma = 5  # white noise
 # PSF approximations, Ref doi: 10.1364/AO.46.001819
@@ -40,11 +40,11 @@ depth_of_focus = depth_of_focus / truth_box_pxlsize
 
 ## Condensate parameters
 # condensate size follows Gaussian distribution
-condensate_r_ave = 500  # average size of condensates, unit: nm
-condensate_r_sigma = condensate_r_ave / 5
+condensate_r_ave = 400  # average size of condensates, unit: nm
+condensate_r_sigma = condensate_r_ave / 10
 pad_size = 200  # push condensates back from FOV edges. unit: nm
-C_condensed = 300  # N.A. unit
-C_dilute = 50
+C_condensed = 600  # N.A. unit
+C_dilute = 40
 
 
 #################################################
@@ -161,7 +161,7 @@ for current_fov in track(index):
         gaussian_noise_mean, gaussian_noise_sigma, img_shrinked.shape
     )
     img_gaussian = img_shrinked + gaussian_noise
-    poisson_mask = poisson(img_gaussian * poisson_noise_lambda)
+    poisson_mask = poisson(img_gaussian * poisson_lambda)
     img_final = img_gaussian + poisson_mask
 
     path_save = join(folder_save, "shrinked-FOVindex-" + str(current_fov) + ".tif")
