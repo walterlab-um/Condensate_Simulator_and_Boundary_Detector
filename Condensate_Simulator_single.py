@@ -4,10 +4,12 @@ from numpy.random import normal, rand, poisson
 import pandas as pd
 from tifffile import imwrite
 from scipy.ndimage import gaussian_filter
+from scipy.stats.qmc import Sobol
 from skimage.util import random_noise, img_as_uint, img_as_float
 from rich.progress import track
 
 ##################################
+# Parameters
 # folder_save = dirname(realpath(__file__))
 folder_save = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection"
 ## FOV parameters
@@ -37,29 +39,34 @@ sigma_lateral = sigma_lateral / truth_box_pxlsize
 sigma_axial = sigma_axial / truth_box_pxlsize
 depth_of_focus = depth_of_focus / truth_box_pxlsize
 
-
 ## Condensate parameters
 # condensate size follows Gaussian distribution
-condensate_r_ave = 400  # average size of condensates, unit: nm
-condensate_r_sigma = condensate_r_ave / 10
-pad_size = 200  # push condensates back from FOV edges. unit: nm
+condensate_r_range = (300, 500)  # average size of condensates, unit: nm
 C_condensed = 600  # N.A. unit
 C_dilute = 40
 
 
 #################################################
 # Step 1: Analytical ground truth
-# generate condensate radius
-condensate_r = normal(loc=condensate_r_ave, scale=condensate_r_sigma, size=N_fov)
-# make sure condensates are padded from FOV edges
-coor_min = condensate_r + pad_size
-coor_max = fovsize - condensate_r - pad_size
+# generate condensate radius with Sobol Sampling
+sampler = Sobol(d=1, scramble=False)
+condensate_r = condensate_r_range[0] + sampler.random(N_fov) * (
+    condensate_r_range[1] - condensate_r_range[0]
+)
+
+# push condensates back from FOV edges. unit: nm
+condensate_center_range = (
+    condensate_r_range[1],
+    fovsize - condensate_r_range[1],
+)
+
 # generate condensate center coordinates
-center_x = []
-center_y = []
-for current_min, current_max in zip(coor_min, coor_max):
-    center_x.append(rand() * (current_max - current_min) + current_min)
-    center_y.append(rand() * (current_max - current_min) + current_min)
+sampler = Sobol(d=2, scramble=False)
+condensate_xy = condensate_center_range[0] + sampler.random(N_fov) * (
+    condensate_center_range[1] - condensate_center_range[0]
+)
+center_x = condensate_xy[:, 0]
+center_y = condensate_xy[:, 1]
 
 # Wrap up and save ground truth
 index = np.arange(N_fov)
@@ -71,10 +78,7 @@ df_groundtruth = pd.DataFrame(
         "r_nm": condensate_r,
         "C_dilute": np.repeat(C_dilute, N_fov),
         "C_condensed": np.repeat(C_condensed, N_fov),
-        "r_ave_nm": np.repeat(condensate_r_ave, N_fov),
-        "r_sigma_nm": np.repeat(condensate_r_sigma, N_fov),
         "FOVsize_nm": np.repeat(fovsize, N_fov),
-        "padding_nm": np.repeat(pad_size, N_fov),
     },
     dtype=object,
 )
@@ -111,11 +115,9 @@ for current_fov in track(index):
     )
     condensate_mask = distance_square < r_pxl**2
     truth_box = condensate_mask * C_condensed + (1 - condensate_mask) * C_dilute
-    truth_box = truth_box.astype("uint16")
-
     # Save ground truth box
-    path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(path_save, truth_box, imagej=True)
+    # path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
+    # imwrite(path_save, truth_box.astype("uint16"), imagej=True)
 
     #################################################
     # Step 3: simulated 'real' image
