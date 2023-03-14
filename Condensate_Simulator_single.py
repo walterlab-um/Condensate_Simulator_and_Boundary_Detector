@@ -16,7 +16,7 @@ folder_save = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetecti
 fovsize = 2000  # unit: nm
 truth_box_pxlsize = 10  # unit: nm
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_box_pxlsize
-N_fov = 1  # number of total im
+N_fov = 10  # number of total im
 
 ## Imaging system parameters
 # Microscope parameters
@@ -25,7 +25,6 @@ Numerical_Aperature = 1.5
 refractive_index = 1.515
 emission_wavelength = 520  # assuming Alexa488, unit: nm
 # Noise parameters
-poisson_lambda = 1.2
 gaussian_noise_mean = 400
 gaussian_noise_sigma = 5  # white noise
 # PSF approximations, Ref doi: 10.1364/AO.46.001819
@@ -87,10 +86,12 @@ df_groundtruth.to_csv(path_save, index=False)
 
 # Generate truth image and simulated real image
 for current_fov in track(index):
-    # extract condensate ground truth for current FOV
+    #################################################
+    # Step 2: Ground truth high-resolution volume "image"
     df_current = df_groundtruth[df_groundtruth.FOVindex == current_fov]
     fovsize_truth = int(fovsize / truth_box_pxlsize)
-    # minimal Z range for convolution should be r + 3*sigma_axial
+
+    # Make a box; minimal Z range for convolution should be r + 3*sigma_axial
     r_truth = df_current["r_nm"].squeeze() / truth_box_pxlsize
     z_min = int(fovsize_truth / 2 - r_truth - 3 * sigma_axial)
     z_max = int(fovsize_truth / 2 + r_truth + 3 * sigma_axial)
@@ -99,25 +100,21 @@ for current_fov in track(index):
         np.arange(fovsize_truth),
         np.arange(z_min, z_max),
     )
+
+    # Make a condensate mask
     center_x_pxl = df_current.x_nm.squeeze() / truth_box_pxlsize
     center_y_pxl = df_current.y_nm.squeeze() / truth_box_pxlsize
     center_z_pxl = (fovsize / 2) / truth_box_pxlsize
     r_pxl = df_current.r_nm.squeeze() / truth_box_pxlsize
-    depth_of_focus_pxl = depth_of_focus / truth_box_pxlsize
-
-    #################################################
-    # Step 2: Ground truth high-resolution volume "image"
-    # baesd on a spherecal volume projection model: height = 2 * sqrt(r^2-d^2), only when d < r, thus need a mask for condensate
     distance_square = (
         (pxl_x - center_x_pxl) ** 2
         + (pxl_y - center_y_pxl) ** 2
         + (pxl_z - center_z_pxl) ** 2
     )
     condensate_mask = distance_square < r_pxl**2
+
+    # Make a truth box
     truth_box = condensate_mask * C_condensed + (1 - condensate_mask) * C_dilute
-    # Save ground truth box
-    # path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
-    # imwrite(path_save, truth_box.astype("uint16"), imagej=True)
 
     #################################################
     # Step 3: simulated 'real' image
@@ -126,7 +123,8 @@ for current_fov in track(index):
     box_PSFconvolved = gaussian_filter(
         truth_box, sigma=[sigma_lateral, sigma_lateral, sigma_axial]
     )
-    # use depth of focus to generate an image
+
+    # A slice with the thickness of depth of focus will generate an image
     z_middle = (z_max - z_min) / 2
     img_PSFconvolved = np.sum(
         box_PSFconvolved[
@@ -135,15 +133,7 @@ for current_fov in track(index):
             int(z_middle - depth_of_focus / 2) : int(z_middle + depth_of_focus / 2) + 1,
         ],
         axis=2,
-    ).astype("uint16")
-
-    # Save convolution products
-    path_save = join(
-        folder_save, "TruthBoxConvolved-FOVindex-" + str(current_fov) + ".tif"
     )
-    imwrite(path_save, box_PSFconvolved, imagej=True)
-    path_save = join(folder_save, "TruthImg-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(path_save, img_PSFconvolved, imagej=True)
 
     # Magnification adjustment. Re-adjust the high-res image back to practically low-res image by integration
     fovsize_real = int(fovsize / real_img_pxlsize)
@@ -163,24 +153,10 @@ for current_fov in track(index):
         gaussian_noise_mean, gaussian_noise_sigma, img_shrinked.shape
     )
     img_gaussian = img_shrinked + gaussian_noise
-    poisson_mask = poisson(img_gaussian * poisson_lambda)
+    poisson_mask = poisson(img_gaussian)
     img_final = img_gaussian + poisson_mask
 
-    path_save = join(folder_save, "shrinked-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(
-        path_save,
-        img_shrinked.astype("uint16"),
-        imagej=True,
-    )
-
-    path_save = join(folder_save, "gaussian-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(
-        path_save,
-        img_gaussian.astype("uint16"),
-        imagej=True,
-    )
-
-    path_save = join(folder_save, "final-FOVindex-" + str(current_fov) + ".tif")
+    path_save = join(folder_save, "FOVindex-" + str(current_fov) + ".tif")
     imwrite(
         path_save,
         img_final.astype("uint16"),
