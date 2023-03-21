@@ -16,7 +16,7 @@ folder_save = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetecti
 fovsize = 2000  # unit: nm
 truth_box_pxlsize = 10  # unit: nm
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_box_pxlsize
-N_fov = 10  # number of total im
+N_fov = 2**3  # number of total images, must have a 2 base for sobol sampling
 
 ## Imaging system parameters
 # Microscope parameters
@@ -41,17 +41,22 @@ depth_of_focus = depth_of_focus / truth_box_pxlsize
 ## Condensate parameters
 # condensate size follows Gaussian distribution
 condensate_r_range = (300, 500)  # average size of condensates, unit: nm
-C_condensed = 600  # N.A. unit
-C_dilute = 40
+condense_to_dilute_ratio = (2, 100)  # range
+C_dilute = 1  # N.A. unit
 
 
 #################################################
 # Step 1: Analytical ground truth
-# generate condensate radius with Sobol Sampling
-sampler = Sobol(d=1, scramble=False)
-condensate_r = condensate_r_range[0] + sampler.random(N_fov) * (
+# condensate radius , by Sobol Sampling
+sampler = Sobol(d=2, scramble=False)
+samples = sampler.random_base2(N_fov)
+condensate_r = condensate_r_range[0] + samples[:, 0] * (
     condensate_r_range[1] - condensate_r_range[0]
 )
+C_condensed = (
+    condense_to_dilute_ratio[0]
+    + samples[:, 1] * (condense_to_dilute_ratio[1] - condense_to_dilute_ratio[0])
+) * C_dilute
 
 # push condensates back from FOV edges. unit: nm
 condensate_center_range = (
@@ -60,8 +65,7 @@ condensate_center_range = (
 )
 
 # generate condensate center coordinates
-sampler = Sobol(d=2, scramble=False)
-condensate_xy = condensate_center_range[0] + sampler.random(N_fov) * (
+condensate_xy = condensate_center_range[0] + rand(N_fov, 2) * (
     condensate_center_range[1] - condensate_center_range[0]
 )
 center_x = condensate_xy[:, 0]
