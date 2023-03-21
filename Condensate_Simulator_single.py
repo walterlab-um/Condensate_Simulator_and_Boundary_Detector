@@ -16,7 +16,8 @@ folder_save = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetecti
 fovsize = 2000  # unit: nm
 truth_box_pxlsize = 10  # unit: nm
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_box_pxlsize
-N_fov = 2**3  # number of total images, must have a 2 base for sobol sampling
+# To guarantee the balance properties of Sobol sampling, N_fov = 2 ^ N_fov_base2
+N_fov_base2 = 3
 
 ## Imaging system parameters
 # Microscope parameters
@@ -49,7 +50,7 @@ C_dilute = 1  # N.A. unit
 # Step 1: Analytical ground truth
 # condensate radius , by Sobol Sampling
 sampler = Sobol(d=2, scramble=False)
-samples = sampler.random_base2(N_fov)
+samples = sampler.random_base2(N_fov_base2)
 condensate_r = condensate_r_range[0] + samples[:, 0] * (
     condensate_r_range[1] - condensate_r_range[0]
 )
@@ -65,23 +66,23 @@ condensate_center_range = (
 )
 
 # generate condensate center coordinates
-condensate_xy = condensate_center_range[0] + rand(N_fov, 2) * (
+condensate_xy = condensate_center_range[0] + rand(2**N_fov_base2, 2) * (
     condensate_center_range[1] - condensate_center_range[0]
 )
 center_x = condensate_xy[:, 0]
 center_y = condensate_xy[:, 1]
 
 # Wrap up and save ground truth
-index = np.arange(N_fov)
+index = np.arange(2**N_fov_base2)
 df_groundtruth = pd.DataFrame(
     {
         "FOVindex": index,
         "x_nm": center_x,
         "y_nm": center_y,
         "r_nm": condensate_r,
-        "C_dilute": np.repeat(C_dilute, N_fov),
-        "C_condensed": np.repeat(C_condensed, N_fov),
-        "FOVsize_nm": np.repeat(fovsize, N_fov),
+        "C_dilute": np.repeat(C_dilute, 2**N_fov_base2),
+        "C_condensed": C_condensed,
+        "FOVsize_nm": np.repeat(fovsize, 2**N_fov_base2),
     },
     dtype=object,
 )
@@ -118,7 +119,10 @@ for current_fov in track(index):
     condensate_mask = distance_square < r_pxl**2
 
     # Make a truth box
-    truth_box = condensate_mask * C_condensed + (1 - condensate_mask) * C_dilute
+    truth_box = (
+        condensate_mask * df_current["C_condensed"].squeeze()
+        + (1 - condensate_mask) * C_dilute
+    )
 
     #################################################
     # Step 3: simulated 'real' image
