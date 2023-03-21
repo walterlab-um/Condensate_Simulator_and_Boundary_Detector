@@ -162,12 +162,12 @@ for current_fov in track(index):
     poisson_mask = poisson(img_gaussian)
     img_final = img_gaussian + poisson_mask
 
-    path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
-    imwrite(
-        path_save,
-        img_PSFconvolved.astype("uint16"),
-        imagej=True,
-    )
+    # path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
+    # imwrite(
+    #     path_save,
+    #     img_PSFconvolved.astype("uint16"),
+    #     imagej=True,
+    # )
 
     path_save = join(folder_save, "Simulated-FOVindex-" + str(current_fov) + ".tif")
     imwrite(
