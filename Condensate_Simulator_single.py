@@ -5,13 +5,11 @@ import pandas as pd
 from tifffile import imwrite
 from scipy.ndimage import gaussian_filter
 from scipy.stats.qmc import Sobol
-from skimage.util import random_noise, img_as_uint, img_as_float
 from rich.progress import track
 
 ##################################
 # Parameters
-# folder_save = dirname(realpath(__file__))
-folder_save = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection"
+folder_save = dirname(realpath(__file__))
 ## FOV parameters
 fovsize = 2000  # unit: nm
 truth_box_pxlsize = 10  # unit: nm
@@ -41,8 +39,8 @@ depth_of_focus = depth_of_focus / truth_box_pxlsize
 
 ## Condensate parameters
 # condensate size follows Gaussian distribution
-condensate_r_range = (300, 500)  # average size of condensates, unit: nm
-condense_to_dilute_ratio = (2, 100)  # range
+condensate_r_range = (100, 600)  # radius of condensates, nm; Source: PB data
+condense_to_dilute_ratio = (2, 10)  # Source: 10.1016/j.molcel.2015.08.018, Fig 4
 C_dilute = 1  # N.A. unit
 
 
@@ -164,7 +162,14 @@ for current_fov in track(index):
     poisson_mask = poisson(img_gaussian)
     img_final = img_gaussian + poisson_mask
 
-    path_save = join(folder_save, "FOVindex-" + str(current_fov) + ".tif")
+    path_save = join(folder_save, "Truth-FOVindex-" + str(current_fov) + ".tif")
+    imwrite(
+        path_save,
+        img_PSFconvolved.astype("uint16"),
+        imagej=True,
+    )
+
+    path_save = join(folder_save, "Simulated-FOVindex-" + str(current_fov) + ".tif")
     imwrite(
         path_save,
         img_final.astype("uint16"),
