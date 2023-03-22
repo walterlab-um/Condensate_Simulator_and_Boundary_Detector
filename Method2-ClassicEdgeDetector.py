@@ -1,5 +1,6 @@
-from tkinter import filedialog as fd
 import os
+import shutil
+from os.path import join, exists
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,11 +10,10 @@ from rich.progress import track
 
 ####################################
 # Parameters
-med_size = 3  # pixels, denoise
 # Canny edge detection parameters
-cannythresh1 = 100
-cannythresh2 = 3000
-SobelSize = 7  # 3/5/7
+cannythresh1 = 50
+cannythresh2 = 1000
+SobelSize = 5  # 3/5/7
 L2gradient = True
 
 min_intensity = 10  # filter on average intensity within a contour
@@ -25,14 +25,15 @@ dilatation_size = 1
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 
-folder = fd.askdirectory()
+folder = (
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
+)
 os.chdir(folder)
 lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
-# lst_tifs = [
-#     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-large.tif"
-# ]
+
 
 switch_plot = True  # a switch to turn off plotting
+
 
 ####################################
 # Functions
@@ -68,6 +69,7 @@ def pltcontours(img, contours, fsave):
     plt.axis("scaled")
     plt.axis("off")
     plt.savefig(fsave, format="png", bbox_inches="tight", dpi=300)
+    plt.close()
 
 
 def cnt2mask(imgshape, contours):
@@ -80,24 +82,11 @@ def cnt2mask(imgshape, contours):
     return mask
 
 
-def mask_dilation(mask_in):
-    global dilation, morph_shape, dilatation_size
-    if dilation:
-        element = cv2.getStructuringElement(
-            morph_shape,
-            (2 * dilatation_size + 1, 2 * dilatation_size + 1),
-            (dilatation_size, dilatation_size),
-        )
-        mask_out = cv2.dilate(mask_in, element)
-
-    else:
-        mask_out = mask_in
-
-    return mask_out
-
-
 ####################################
 # Main
+if exists("Method-2-Canny"):
+    shutil.rmtree("Method-2-Canny")
+os.mkdir("Method-2-Canny")
 lst_index = []
 lst_contours = []
 for fpath in track(lst_tifs):
@@ -116,21 +105,21 @@ for fpath in track(lst_tifs):
     # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
     contours, _ = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
-    # Merge overlapping contours, and dilation by 1 pixel
+    # Merge overlapping contours
     mask = cnt2mask(img_raw.shape, contours)
-    mask_dilated = mask_dilation(mask)
-    contours_final, _ = cv2.findContours(
-        mask_dilated, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE
-    )
+    contours_final, _ = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
     lst_index.append(index)
     lst_contours.append(contours_final)
 
-    fpath_img = fpath[:-4] + "_Canny.png"
     if switch_plot:
+        fpath_img = join("Method-2-Canny", fpath[:-4] + "_Denoise_Threshold.png")
         pltcontours(img_raw, contours_final, fpath_img)
     else:
         continue
 
 
-pickle.dump([lst_index, lst_contours], open("Contours_Canny.pkl", "wb"))
+pickle.dump(
+    [lst_index, lst_contours],
+    open(join("Method-2-Canny", "Contours_Denoise_Threshold.pkl"), "wb"),
+)
