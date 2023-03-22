@@ -1,10 +1,11 @@
 from tkinter import filedialog as fd
 import os
+from os.path import join
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.filters import threshold_otsu
-from scipy.signal import medfilt
+from scipy.ndimage import gaussian_filter
 from tifffile import imread
 import pickle
 from rich.progress import track
@@ -67,12 +68,13 @@ def cnt2mask(imgshape, contours):
 
 ####################################
 # Main
+os.mkdir("Method-1-Denoise_Threshold")
 lst_index = []
 lst_contours = []
 for fpath in track(lst_tifs):
     index = fpath.split("FOVindex-")[-1][:-4]
     img_raw = imread(fpath)
-    img_denoise = medfilt(img_raw, 3)
+    img_denoise = gaussian_filter(img_raw, sigma=1)
     threshold = threshold_otsu(img_denoise, nbins=30)
     edges = img_denoise > threshold
     # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
@@ -86,9 +88,14 @@ for fpath in track(lst_tifs):
     lst_contours.append(contours_final)
 
     if switch_plot:
-        fpath_img = fpath[:-4] + "_Denoise_Threshold.png"
+        fpath_img = join(
+            "Method-1-Denoise_Threshold", fpath[:-4] + "_Denoise_Threshold.png"
+        )
         pltcontours(img_raw, contours_final, fpath_img)
     else:
         continue
 
-pickle.dump([lst_index, lst_contours], open("Contours_Denoise_Threshold.pkl", "wb"))
+pickle.dump(
+    [lst_index, lst_contours],
+    open(join("Method-1-Denoise_Threshold", "Contours_Denoise_Threshold.pkl"), "wb"),
+)
