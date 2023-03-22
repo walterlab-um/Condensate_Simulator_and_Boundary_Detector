@@ -15,7 +15,7 @@ from rich.progress import track
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-32"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
 )
 os.chdir(folder)
 lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
