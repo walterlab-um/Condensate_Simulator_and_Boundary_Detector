@@ -1,52 +1,46 @@
 from tkinter import filedialog as fd
 import os
-from os.path import join, dirname
+import shutil
+from os.path import join, exists
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from skimage import exposure
-from scipy.signal import medfilt
 from scipy.ndimage import gaussian_filter
-from skimage.feature import blob_dog, blob_log
+from skimage.feature import blob_log
 from lmfit.models import Gaussian2dModel
 from tifffile import imread
 from rich.progress import track
 
 ####################################
 # Parameters
-# Denoise
-med_size = 3  # pixels
-# Gauss_size = 2  # pixels
 # DoG detector
-blob_LoG_threshold = 5
+blob_LoG_threshold = 0.001
 max_sig = 5
 # Gauss Fit
 crop_size = 3  # pixels, half size of crop for Gauss fit
-chisqr_threshold = 100  # Goodness of fit
-Nsigma = 3  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
+chisqr_threshold = 1000  # Goodness of fit
+Nsigma = 2.355  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
 
-rescale_contrast = True
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 
-folder = fd.askdirectory(
-    initialdir="/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/"
+folder = (
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
 )
-# folder = "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/mimic_Dcp1a_HOPS/test_3/"
 os.chdir(folder)
-lst_tifs = [
-    f for f in os.listdir(folder) if f.endswith(".tif") and f.startswith("final-")
-]
-# lst_tifs = [
-#     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
-# ]
+lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
 
-switch_plot = False  # a switch to turn off plotting
+switch_plot = True  # a switch to turn off plotting
 
 
 ####################################
 # Main
+if exists("Method-3-GaussFit"):
+    shutil.rmtree("Method-3-GaussFit")
+os.mkdir("Method-3-GaussFit")
+
 lst_index = []
 lst_contours = []
 centerx = []
@@ -59,17 +53,15 @@ fity = []
 for fpath in track(lst_tifs):
     index = int(fpath.split("FOVindex-")[-1][:-4])
     img = imread(fpath)
-    img_denoised = medfilt(img, med_size)
-    # img_denoised = gaussian_filter(img, sigma=Gauss_size)
 
     blobs = blob_log(
-        img_denoised, threshold=blob_LoG_threshold, exclude_border=3, max_sigma=max_sig
+        img, threshold=blob_LoG_threshold, exclude_border=3, max_sigma=max_sig
     )
 
     # make local crops around
     lst_GaussCrop = []
     for initial_x, initial_y, initial_sigma in blobs:
-        GaussCrop = img_denoised[
+        GaussCrop = img[
             int(initial_x) - crop_size : int(initial_x) + crop_size + 1,
             int(initial_y) - crop_size : int(initial_y) + crop_size + 1,
         ]
@@ -130,7 +122,7 @@ df_result = pd.DataFrame(
     dtype=float,
 )
 df_result = df_result.sort_values("index")
-fpath_save = join(dirname(fpath), "GaussFit.csv")
+fpath_save = join("Method-3-GaussFit", "GaussFit.csv")
 df_result.to_csv(fpath_save, index=False)
 
 
@@ -140,13 +132,9 @@ if switch_plot:
         df_current = df_result[df_result["index"] == index]
         img = imread(fpath)
         fig, ax = plt.subplots()
-        if rescale_contrast:
-            # Contrast stretching
-            p1, p2 = np.percentile(img, (plow, phigh))
-            img_rescale = exposure.rescale_intensity(img, in_range=(p1, p2))
-            ax.imshow(img_rescale, cmap="gray")
-        else:
-            ax.imshow(img, cmap="gray")
+        # Contrast stretching
+        vmin, vmax = np.percentile(img, (plow, phigh))
+        ax.imshow(img, cmap="Blues", vmin=vmin, vmax=vmax)
 
         for note, row in df_current.iterrows():
             x = row.centerx
@@ -157,7 +145,7 @@ if switch_plot:
                 (y, x),
                 Nsigma * sigmax,
                 Nsigma * sigmay,
-                color="firebrick",
+                color="black",
                 fill=False,
                 lw=2,
             )  # plot as FWHM
@@ -168,5 +156,6 @@ if switch_plot:
         plt.tight_layout()
         plt.axis("scaled")
         plt.axis("off")
-        fpath_save = fpath[:-4] + "_GaussFit.png"
+        fpath_save = join("Method-3-GaussFit", fpath[:-4] + "_GaussFit.png")
         plt.savefig(fpath_save, format="png", bbox_inches="tight", dpi=300)
+        plt.close()
