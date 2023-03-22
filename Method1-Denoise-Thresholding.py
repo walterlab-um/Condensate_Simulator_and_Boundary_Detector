@@ -11,15 +11,8 @@ from rich.progress import track
 
 ####################################
 # Parameters
-threshold = 0.9  # threshold * (max - min) + min
-
-dilation = False
-morph_shape = cv2.MORPH_ELLIPSE
-dilatation_size = 1
-
 plow = 0.05  # imshow intensity percentile
 phigh = 99
-
 folder = (
     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-32"
 )
@@ -72,22 +65,6 @@ def cnt2mask(imgshape, contours):
     return mask
 
 
-def mask_dilation(mask_in):
-    global dilation, morph_shape, dilatation_size
-    if dilation:
-        element = cv2.getStructuringElement(
-            morph_shape,
-            (2 * dilatation_size + 1, 2 * dilatation_size + 1),
-            (dilatation_size, dilatation_size),
-        )
-        mask_out = cv2.dilate(mask_in, element)
-
-    else:
-        mask_out = mask_in
-
-    return mask_out
-
-
 ####################################
 # Main
 lst_index = []
@@ -96,27 +73,20 @@ for fpath in track(lst_tifs):
     index = fpath.split("FOVindex-")[-1][:-4]
     img_raw = imread(fpath)
     img_denoise = medfilt(img_raw, 3)
-    # threshold = threshold_otsu(img_denoise, nbins=30)
-    # edges = img_denoise > threshold
-    edges = (
-        img_denoise
-        > threshold * (img_denoise.max() - img_denoise.min()) + img_denoise.min()
-    )
+    threshold = threshold_otsu(img_denoise, nbins=30)
+    edges = img_denoise > threshold
     # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
     contours, _ = cv2.findContours(edges * 1, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
-    # Merge overlapping contours, and dilation by 1 pixel
+    # Merge overlapping contours
     mask = cnt2mask(img_raw.shape, contours)
-    mask_dilated = mask_dilation(mask)
-    contours_final, _ = cv2.findContours(
-        mask_dilated, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE
-    )
+    contours_final, _ = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
     lst_index.append(index)
     lst_contours.append(contours_final)
 
-    fpath_img = fpath[:-4] + "_Denoise_Threshold.png"
     if switch_plot:
+        fpath_img = fpath[:-4] + "_Denoise_Threshold.png"
         pltcontours(img_raw, contours_final, fpath_img)
     else:
         continue
