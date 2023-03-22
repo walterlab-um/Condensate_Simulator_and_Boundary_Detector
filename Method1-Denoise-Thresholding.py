@@ -3,6 +3,7 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage.filters import threshold_otsu
 from scipy.signal import medfilt
 from tifffile import imread
 import pickle
@@ -10,7 +11,6 @@ from rich.progress import track
 
 ####################################
 # Parameters
-med_size = 3  # pixels
 threshold = 0.55  # threshold * (max - min) + min
 min_intensity = 0  # filter on average intensity within a contour
 
@@ -21,14 +21,14 @@ dilatation_size = 1
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 
-folder = fd.askdirectory()
+folder = (
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-32"
+)
 os.chdir(folder)
 lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
-# lst_tifs = [
-#     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Real-Data/forFig3-small.tif"
-# ]
 
 switch_plot = True  # a switch to turn off plotting
+
 
 ####################################
 # Functions
@@ -99,15 +99,11 @@ lst_contours = []
 for fpath in track(lst_tifs):
     index = fpath.split("FOVindex-")[-1][:-4]
     img_raw = imread(fpath)
-    # img_denoise = medfilt(img_raw, med_size)
-    img_denoise = img_raw
-    edges = (
-        img_denoise
-        > threshold * (img_denoise.max() - img_denoise.min()) + img_denoise.min()
-    )
-    edges = edges * 1
+    img_denoise = medfilt(img_raw, 3)
+    threshold = threshold_otsu(img_denoise, nbins=30)
+    edges = img_denoise > threshold
     # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
-    contours, _ = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+    contours, _ = cv2.findContours(edges * 1, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
     # Merge overlapping contours, and dilation by 1 pixel
     mask = cnt2mask(img_raw.shape, contours)
