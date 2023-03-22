@@ -11,8 +11,7 @@ from rich.progress import track
 
 ####################################
 # Parameters
-threshold = 0.55  # threshold * (max - min) + min
-min_intensity = 0  # filter on average intensity within a contour
+threshold = 0.9  # threshold * (max - min) + min
 
 dilation = False
 morph_shape = cv2.MORPH_ELLIPSE
@@ -42,22 +41,19 @@ def cnt_fill(imgshape, cnt):
 
 
 def pltcontours(img, contours, fsave):
-    global rescale_contrast, plow, phigh, min_intensity
+    global rescale_contrast, plow, phigh
     plt.figure(dpi=300)
     # Contrast stretching
     vmin, vmax = np.percentile(img, (plow, phigh))
     plt.imshow(img, cmap="Blues", vmin=vmin, vmax=vmax)
     for cnt in contours:
-        # make mask for intensity calculations
-        mask = cnt_fill(img.shape, cnt)
-        if cv2.mean(img, mask=mask)[0] > min_intensity:
-            x = cnt[:, 0][:, 0]
-            y = cnt[:, 0][:, 1]
-            plt.plot(x, y, "-", color="black", linewidth=2)
-            # still the last closing line will be missing, get it below
-            xlast = [x[-1], x[0]]
-            ylast = [y[-1], y[0]]
-            plt.plot(xlast, ylast, "-", color="black", linewidth=2)
+        x = cnt[:, 0][:, 0]
+        y = cnt[:, 0][:, 1]
+        plt.plot(x, y, "-", color="black", linewidth=2)
+        # still the last closing line will be missing, get it below
+        xlast = [x[-1], x[0]]
+        ylast = [y[-1], y[0]]
+        plt.plot(xlast, ylast, "-", color="black", linewidth=2)
     plt.xlim(0, img.shape[0])
     plt.ylim(0, img.shape[1])
     plt.tight_layout()
@@ -100,8 +96,12 @@ for fpath in track(lst_tifs):
     index = fpath.split("FOVindex-")[-1][:-4]
     img_raw = imread(fpath)
     img_denoise = medfilt(img_raw, 3)
-    threshold = threshold_otsu(img_denoise, nbins=30)
-    edges = img_denoise > threshold
+    # threshold = threshold_otsu(img_denoise, nbins=30)
+    # edges = img_denoise > threshold
+    edges = (
+        img_denoise
+        > threshold * (img_denoise.max() - img_denoise.min()) + img_denoise.min()
+    )
     # find contours coordinates in binary edge image. contours here is a list of np.arrays containing all coordinates of each individual edge/contour.
     contours, _ = cv2.findContours(edges * 1, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
