@@ -31,7 +31,6 @@ folder = (
 os.chdir(folder)
 lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
 
-
 switch_plot = True  # a switch to turn off plotting
 
 
