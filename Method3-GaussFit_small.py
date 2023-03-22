@@ -20,7 +20,7 @@ blob_LoG_threshold = 0.001
 max_sig = 5
 # Gauss Fit
 crop_size = 3  # pixels, half size of crop for Gauss fit
-chisqr_threshold = 1000  # Goodness of fit
+chisqr_threshold = 700  # Goodness of fit
 Nsigma = 2.355  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
 
 plow = 0.05  # imshow intensity percentile
@@ -143,8 +143,8 @@ if switch_plot:
             sigmay = row.sigmay
             condensate = Ellipse(
                 (y, x),
-                Nsigma * sigmax,
                 Nsigma * sigmay,
+                Nsigma * sigmax,
                 color="black",
                 fill=False,
                 lw=2,
