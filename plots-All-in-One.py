@@ -87,7 +87,7 @@ def assemble_heatmap(heatmap, metric=None, operation="rate"):
 def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
     global xticks, yticks
     # plot heatmaps for different quantities, in both mean and varience
-    plt.figure(dpi=300)
+    plt.figure(figsize=(5, 5), dpi=300)
     ax = sns.heatmap(
         data=heatmap,
         xticklabels=xticks,
