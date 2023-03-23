@@ -106,7 +106,6 @@ def plot_heatmap(heatmap, subtitle, cmap, vrange=None, norm=None):
         xticklabels=xticks,
         yticklabels=yticks,
         annot=True,
-        robust=True,
         cmap=cmap,
         norm=norm,
         vmin=vmin,
@@ -118,7 +117,7 @@ def plot_heatmap(heatmap, subtitle, cmap, vrange=None, norm=None):
     title = "Method 4 Machine Learning" + "\n" + subtitle
     path_save = join(
         "Results-heatmap",
-        ("Method 4 Machine Learning-pooled-" + subtitle + ".png"),
+        ("Method_4_Machine_Learning-pooled-" + subtitle + ".png"),
     )
     plt.title(title, weight="bold")
     plt.tight_layout()
