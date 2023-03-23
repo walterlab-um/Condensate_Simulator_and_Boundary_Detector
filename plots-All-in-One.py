@@ -25,8 +25,8 @@ lst_metric = [
     "fold_deviation_PC",
 ]
 dict_subtitle = {
-    "deviation_center": "Center Deviation",
-    "rmsd_edge": "Edge Deviation RMSD",
+    "deviation_center": "Center Deviation, nm",
+    "rmsd_edge": "Edge Deviation RMSD, nm",
     "fold_deviation_area": "Area Deviation Fold Change",
     "fold_deviation_PC": "PC Deviation Fold Change",
 }
@@ -87,7 +87,7 @@ def assemble_heatmap(heatmap, metric=None, operation="rate"):
 def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
     global xticks, yticks
     # plot heatmaps for different quantities, in both mean and varience
-    plt.figure(figsize=(5, 5), dpi=300)
+    plt.figure(figsize=(6, 5), dpi=300)
     ax = sns.heatmap(
         data=heatmap,
         xticklabels=xticks,
