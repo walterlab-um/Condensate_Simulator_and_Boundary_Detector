@@ -4,21 +4,19 @@ import pickle
 import cv2
 import pandas as pd
 import numpy as np
-import seaborn as sns
-
-sns.set(color_codes=True, style="white")
+from rich.progress import Progress
 
 #################################################
 # Inputs
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
 fovsize = 2000  # unit: nm
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-32"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
 )
 os.chdir(folder)
 path_groundtruth = "groundtruth.csv"
-path_pkl = "Method-1-Denoise_Threshold/Contours_Denoise_Threshold.pkl"
-# path_pkl = "Method-2-Canny/Contours_Canny.pkl"
+# path_pkl = "Method-1-Denoise_Threshold/Contours_Denoise_Threshold.pkl"
+path_pkl = "Method-2-Canny/Contours_Canny.pkl"
 
 
 #################################################
@@ -54,63 +52,72 @@ rmsd_edge = []
 area_fold_deviation = []  # with sign
 # difference in partition coefficient, assume outside C_dilute=1, so directly the average intensity inside, with sign
 fold_deviation_pc = []
-for index, contours in zip(np.array(lst_index, dtype=int), lst_contours):
-    # retreive ground truth
-    row = df_truth[df_truth.FOVindex == index]
-    truth_x_nm = row["x_nm"].squeeze()
-    truth_y_nm = row["y_nm"].squeeze()
-    truth_r_nm = row["r_nm"].squeeze()
-    truth_pc = row["C_condensed"].squeeze()
-    detected_contour = contours[0]
-    lst_truth_r.append(truth_r_nm)
-    lst_truth_pc.append(truth_pc)
+with Progress() as progress:
+    task = progress.add_task(path_pkl, total=len(lst_index))
+    for index, contours in zip(np.array(lst_index, dtype=int), lst_contours):
+        # retreive ground truth
+        row = df_truth[df_truth.FOVindex == index]
+        truth_x_nm = row["x_nm"].squeeze()
+        truth_y_nm = row["y_nm"].squeeze()
+        truth_r_nm = row["r_nm"].squeeze()
+        truth_pc = row["C_condensed"].squeeze()
+        lst_truth_r.append(truth_r_nm)
+        lst_truth_pc.append(truth_pc)
 
-    # fail if more than 1 condensate or no condensate was detected
-    if len(contours) > 1 | len(contours) == 0:
-        when_failed()
-        continue
-    # fail if the contour is just the whole field of view
-    if cv2.contourArea(detected_contour) * real_img_pxlsize**2 > 0.8 * fovsize**2:
-        when_failed()
-        continue
+        # fail if more than 1 condensate or no condensate was detected
+        if (len(contours) > 1) | (len(contours) < 1):
+            when_failed()
+            continue
 
-    # calculate the deviation of condensate center
-    M = cv2.moments(detected_contour)
-    if M["m00"] == 0:
-        when_failed()
-        continue
-    cx = int(M["m10"] / M["m00"]) * real_img_pxlsize
-    cy = int(M["m01"] / M["m00"]) * real_img_pxlsize
-    d2center = np.sqrt((cx - truth_x_nm) ** 2 + (cy - truth_y_nm) ** 2)
-    # calculate the RMSD of detected edge to real condensate edge
-    cnt_reshaped = np.reshape(
-        detected_contour, (detected_contour.shape[0], detected_contour.shape[2])
-    )
-    d2edge_squared = []
-    for cnt_x, cnt_y in cnt_reshaped:
-        d2edge_squared.append(
-            np.sqrt(
-                (cnt_x * real_img_pxlsize - truth_x_nm) ** 2
-                + (cnt_y * real_img_pxlsize - truth_y_nm) ** 2
-            )
-            - truth_r_nm
+        detected_contour = contours[0]
+
+        # fail if the contour is just the whole field of view
+        if (
+            cv2.contourArea(detected_contour) * real_img_pxlsize**2
+            > 0.8 * fovsize**2
+        ):
+            when_failed()
+            continue
+
+        # calculate the deviation of condensate center
+        M = cv2.moments(detected_contour)
+        if M["m00"] == 0:
+            when_failed()
+            continue
+        cx = int(M["m10"] / M["m00"]) * real_img_pxlsize
+        cy = int(M["m01"] / M["m00"]) * real_img_pxlsize
+        d2center = np.sqrt((cx - truth_x_nm) ** 2 + (cy - truth_y_nm) ** 2)
+        # calculate the RMSD of detected edge to real condensate edge
+        cnt_reshaped = np.reshape(
+            detected_contour, (detected_contour.shape[0], detected_contour.shape[2])
         )
-    rmsd = np.sqrt(np.mean(d2edge_squared))
-    # calculate the relative deviation in area
-    area = cv2.contourArea(detected_contour) * real_img_pxlsize**2
-    # calculate partition coefficient
-    img = imread("Simulated-FOVindex-" + str(index) + ".tif")
-    mask_in = cnt_fill(img.shape, detected_contour)
-    mask_out = 1 - mask_in
-    partition_coefficient = (
-        cv2.mean(img, mask=mask_in)[0] / cv2.mean(img, mask=mask_out)[0]
-    )
-    # save
-    success.append(True)
-    deviation_center.append(d2center)
-    rmsd_edge.append(rmsd)
-    area_fold_deviation.append(area / (np.pi * truth_r_nm**2))
-    fold_deviation_pc.append(partition_coefficient / truth_pc)
+        d2edge_squared = []
+        for cnt_x, cnt_y in cnt_reshaped:
+            d2edge_squared.append(
+                np.sqrt(
+                    (cnt_x * real_img_pxlsize - truth_x_nm) ** 2
+                    + (cnt_y * real_img_pxlsize - truth_y_nm) ** 2
+                )
+                - truth_r_nm
+            )
+        rmsd = np.sqrt(np.mean(np.array(d2edge_squared) ** 2))
+        # calculate the relative deviation in area
+        area = cv2.contourArea(detected_contour) * real_img_pxlsize**2
+        # calculate partition coefficient
+        img = imread("Simulated-FOVindex-" + str(index) + ".tif")
+        mask_in = cnt_fill(img.shape, detected_contour)
+        mask_out = 1 - mask_in
+        partition_coefficient = (
+            cv2.mean(img, mask=mask_in)[0] / cv2.mean(img, mask=mask_out)[0]
+        )
+        # save
+        success.append(True)
+        deviation_center.append(d2center)
+        rmsd_edge.append(rmsd)
+        area_fold_deviation.append(area / (np.pi * truth_r_nm**2))
+        fold_deviation_pc.append(partition_coefficient / truth_pc)
+
+        progress.update(task)
 
 
 df_save = pd.DataFrame(
