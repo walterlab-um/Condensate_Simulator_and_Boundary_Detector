@@ -20,7 +20,7 @@ blob_LoG_threshold = 0.001
 max_sig = 5
 # Gauss Fit
 crop_size = 3  # pixels, half size of crop for Gauss fit
-chisqr_threshold = 700  # Goodness of fit
+chisqr_threshold = 500  # Goodness of fit
 Nsigma = 2.355  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
 
 plow = 0.05  # imshow intensity percentile
@@ -32,7 +32,7 @@ folder = (
 os.chdir(folder)
 lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
 
-switch_plot = True  # a switch to turn off plotting
+switch_plot = False  # a switch to turn off plotting
 
 
 ####################################
