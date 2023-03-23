@@ -15,7 +15,7 @@ folder = (
 )
 os.chdir(folder)
 path_groundtruth = "groundtruth.csv"
-path_pkl = "ilastik-Guoming/Contours_ilastik.pkl"
+path_pkl = "ilastik-Rosa/Contours_ilastik.pkl"
 # lst_pkl = [
 #     "Method-1-Denoise_Threshold/Contours_Denoise_Threshold.pkl",
 #     "Method-2-Canny/Contours_Canny.pkl",
