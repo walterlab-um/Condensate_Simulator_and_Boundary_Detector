@@ -38,12 +38,12 @@ dict_cmap = {
 }
 cmap_default = "magma"
 dict_vrange = {
-    "deviation_center": (100, 150),
-    "rmsd_edge": (0, 100),
+    "deviation_center": (70, 150),
+    "rmsd_edge": (50, 200),
     "fold_deviation_area": (-1, 1),
-    "fold_deviation_PC": (-1, 0.4),
+    "fold_deviation_PC": (-0.4, 0.4),
 }
-vrange_var = (0, 1000)
+vrange_var = (1, 1000)
 
 
 ###################################
@@ -91,26 +91,29 @@ def assemble_heatmap(heatmap, metric=None, operation="rate"):
     return heatmap
 
 
-def plot_heatmap(heatmap, subfolder, subtitle, cmap, vrange=None, norm=None):
+def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
     global xticks, yticks
-    if vrange == None:
-        vmax = 1
-        vmin = 0
-    else:
-        vmax = vrange[1]
-        vmin = vrange[0]
     # plot heatmaps for different quantities, in both mean and varience
     plt.figure(figsize=(6, 5), dpi=300)
-    ax = sns.heatmap(
-        data=heatmap,
-        xticklabels=xticks,
-        yticklabels=yticks,
-        annot=True,
-        cmap=cmap,
-        norm=norm,
-        vmin=vmin,
-        vmax=vmax,
-    )
+    if norm == None:
+        ax = sns.heatmap(
+            data=heatmap,
+            xticklabels=xticks,
+            yticklabels=yticks,
+            annot=True,
+            cmap=cmap,
+            vmax=1,
+            vmin=0,
+        )
+    else:
+        ax = sns.heatmap(
+            data=heatmap,
+            xticklabels=xticks,
+            yticklabels=yticks,
+            annot=True,
+            cmap=cmap,
+            norm=norm,
+        )
     ax.invert_yaxis()
     plt.xlabel("Partition Coefficient", weight="bold")
     plt.ylabel("Condensate Radius, nm", weight="bold")
@@ -166,16 +169,17 @@ for subfolder in track(lst_subfolders):
 
         # plot heatmaps for different quantities, in both mean and varience
         if metric in ["deviation_center", "rmsd_edge"]:
-            norm = LogNorm()
+            norm = LogNorm(vmin=dict_vrange[metric][0], vmax=dict_vrange[metric][1])
         elif metric in ["fold_deviation_area", "fold_deviation_PC"]:
-            norm = TwoSlopeNorm(0)
+            norm = TwoSlopeNorm(
+                0, vmin=dict_vrange[metric][0], vmax=dict_vrange[metric][1]
+            )
 
         plot_heatmap(
             heatmap_mean,
             subfolder,
             dict_subtitle[metric],
             dict_cmap[metric],
-            dict_vrange[metric],
             norm,
         )
         plot_heatmap(
@@ -183,6 +187,5 @@ for subfolder in track(lst_subfolders):
             subfolder,
             dict_subtitle[metric] + "-" + "Variance",
             cmap_default,
-            vrange_var,
-            LogNorm(),
+            LogNorm(vmin=vrange_var[0], vmax=vrange_var[1]),
         )
