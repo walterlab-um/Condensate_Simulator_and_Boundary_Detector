@@ -37,6 +37,13 @@ dict_cmap = {
     "fold_deviation_PC": "seismic",
 }
 cmap_default = "magma"
+dict_vrange = {
+    "deviation_center": (100, 150),
+    "rmsd_edge": (0, 100),
+    "fold_deviation_area": (-1, 1),
+    "fold_deviation_PC": (-1, 0.4),
+}
+vrange_var = (0, 1000)
 
 
 ###################################
@@ -84,8 +91,14 @@ def assemble_heatmap(heatmap, metric=None, operation="rate"):
     return heatmap
 
 
-def plot_heatmap(heatmap, subtitle, cmap, norm=None):
+def plot_heatmap(heatmap, subtitle, cmap, vrange=None, norm=None):
     global xticks, yticks
+    if vrange == None:
+        vmax = 1
+        vmin = 0
+    else:
+        vmax = vrange[1]
+        vmin = vrange[0]
     # plot heatmaps for different quantities, in both mean and varience
     plt.figure(figsize=(6, 5), dpi=300)
     ax = sns.heatmap(
@@ -96,6 +109,8 @@ def plot_heatmap(heatmap, subtitle, cmap, norm=None):
         robust=True,
         cmap=cmap,
         norm=norm,
+        vmin=vmin,
+        vmax=vmax,
     )
     ax.invert_yaxis()
     plt.xlabel("Partition Coefficient", weight="bold")
@@ -156,11 +171,13 @@ for metric in track(lst_metric, description="Metrices"):
         heatmap_mean,
         dict_subtitle[metric],
         dict_cmap[metric],
+        dict_vrange[metric],
         norm,
     )
     plot_heatmap(
         heatmap_var,
         dict_subtitle[metric] + " - " + "Variance",
         cmap_default,
+        vrange_var,
         LogNorm(),
     )
