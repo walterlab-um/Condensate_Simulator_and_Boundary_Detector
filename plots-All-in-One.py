@@ -159,7 +159,7 @@ for subfolder in track(lst_subfolders):
         plot_heatmap(
             heatmap_mean,
             subfolder,
-            dict_subtitle[metric] + " - " + "Mean",
+            dict_subtitle[metric],
             dict_cmap[metric],
             norm,
         )
