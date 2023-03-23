@@ -106,7 +106,6 @@ def plot_heatmap(heatmap, subfolder, subtitle, cmap, vrange=None, norm=None):
         xticklabels=xticks,
         yticklabels=yticks,
         annot=True,
-        robust=True,
         cmap=cmap,
         norm=norm,
         vmin=vmin,
@@ -182,7 +181,7 @@ for subfolder in track(lst_subfolders):
         plot_heatmap(
             heatmap_var,
             subfolder,
-            dict_subtitle[metric] + " - " + "Variance",
+            dict_subtitle[metric] + "-" + "Variance",
             cmap_default,
             vrange_var,
             LogNorm(),
