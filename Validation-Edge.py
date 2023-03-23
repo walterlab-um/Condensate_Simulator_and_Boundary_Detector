@@ -97,6 +97,7 @@ with Progress() as progress:
         cx = int(M["m10"] / M["m00"]) * real_img_pxlsize
         cy = int(M["m01"] / M["m00"]) * real_img_pxlsize
         d2center = np.sqrt((cx - truth_x_nm) ** 2 + (cy - truth_y_nm) ** 2)
+
         # calculate the RMSD of detected edge to real condensate edge
         cnt_reshaped = np.reshape(
             detected_contour, (detected_contour.shape[0], detected_contour.shape[2])
@@ -111,8 +112,10 @@ with Progress() as progress:
                 - truth_r_nm
             )
         rmsd = np.sqrt(np.mean(np.array(d2edge) ** 2))
+
         # calculate the relative deviation in area
         area = cv2.contourArea(detected_contour) * real_img_pxlsize**2
+
         # calculate partition coefficient
         img = imread("Simulated-FOVindex-" + str(index) + ".tif")
         mask_in = cnt_fill(img.shape, detected_contour)
@@ -120,6 +123,7 @@ with Progress() as progress:
         partition_coefficient = (
             cv2.mean(img, mask=mask_in)[0] / cv2.mean(img, mask=mask_out)[0]
         )
+
         # save
         success.append(True)
         deviation_center.append(d2center)
