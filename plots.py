@@ -43,7 +43,7 @@ divnorm = colors.TwoSlopeNorm(0)
 
 ###################################
 # Functions
-def assemble_heatmap(heatmap, metric, operation):
+def assemble_heatmap(heatmap, metric=None, operation="rate"):
     global r, pc, df_result
     # assemble heatmap for different quantities
     for row in np.arange(len(r) - 1):
@@ -60,6 +60,16 @@ def assemble_heatmap(heatmap, metric, operation):
                 & (within_r_range["truth_pc"] <= range_pc[1])
             ]
 
+            if operation == "rate":
+                rate = (
+                    within_r_and_pc_range[
+                        within_r_and_pc_range["success"] == False
+                    ].shape[0]
+                    / within_r_and_pc_range.shape[0]
+                )
+                heatmap[row, column] = rate
+                continue
+
             if (
                 np.isnan(within_r_and_pc_range[metric]).sum()
                 == within_r_and_pc_range.shape[0]
@@ -73,16 +83,37 @@ def assemble_heatmap(heatmap, metric, operation):
             if operation == "var":
                 heatmap[row, column] = np.nanvar(within_r_and_pc_range[metric])
 
-            if operation == "rate":
-                rate = (
-                    within_r_and_pc_range[
-                        within_r_and_pc_range["success" == False]
-                    ].shape[0]
-                    / within_r_and_pc_range.shape[0]
-                )
-                heatmap[row, column] = rate
-
     return heatmap
+
+
+def plot_heatmap(heatmap, subfolder, subtitle, cmap):
+    global xticks, yticks
+    # plot heatmaps for different quantities, in both mean and varience
+    plt.figure(dpi=300)
+    ax = sns.heatmap(
+        data=heatmap,
+        xticklabels=xticks,
+        yticklabels=yticks,
+        robust=True,
+        cmap=cmap,
+    )
+    ax.invert_yaxis()
+    plt.xlabel("Partition Coefficient", weight="bold")
+    plt.ylabel("Condensate Radius, nm", weight="bold")
+    title = " ".join([s.capitalize() for s in subfolder.split("-")]) + "\n" + subtitle
+    path_save = join(
+        "Results-heatmap",
+        (
+            "_".join([s.capitalize() for s in subfolder.split("-")])
+            + "-"
+            + subtitle
+            + ".png"
+        ),
+    )
+    plt.title(title, weight="bold")
+    plt.tight_layout()
+    plt.savefig(path_save, format="png", bbox_inches="tight")
+    plt.close()
 
 
 ###################################
@@ -111,33 +142,8 @@ for subfolder in track(lst_subfolders):
     df_result = pd.read_csv(join(subfolder, fname), dtype=float)
 
     # plot fail rate as heatmap
-    plt.figure(dpi=300)
-    data = df_result[df_result["success"] == False]
-    sns.histplot(
-        data,
-        x="truth_pc",
-        y="truth_r",
-        cbar=True,
-        bins=(pc, r),
-        cmap=cmap_default,
-        stat="density",
-        fill=True,
-    )
-    plt.xlim(2, 10)
-    plt.ylim(100, 600)
-    plt.xlabel("Partition Coefficient", weight="bold")
-    plt.ylabel("Condensate Radius, nm", weight="bold")
-    title = (
-        " ".join([s.capitalize() for s in subfolder.split("-")]) + "\n" + "- Fail Rate"
-    )
-    path_save = join(
-        "Results-heatmap",
-        ("_".join([s.capitalize() for s in subfolder.split("-")]) + "-Fail Rate.png"),
-    )
-    plt.title(title, weight="bold")
-    plt.tight_layout()
-    plt.savefig(path_save, format="png", bbox_inches="tight")
-    plt.close()
+    heatmap_fail = assemble_heatmap(heatmap_fail)
+    plot_heatmap(heatmap_fail, subfolder, "Fail Rate", cmap_default)
 
     for metric in lst_metric:
         # assemble heatmap for different quantities
@@ -145,64 +151,15 @@ for subfolder in track(lst_subfolders):
         heatmap_var = assemble_heatmap(heatmap_var, metric, "var")
 
         # plot heatmaps for different quantities, in both mean and varience
-        plt.figure(dpi=300)
-        ax = sns.heatmap(
-            data=heatmap_mean,
-            xticklabels=xticks,
-            yticklabels=yticks,
-            robust=True,
-            cmap=dict_cmap[metric],
+        plot_heatmap(
+            heatmap_mean,
+            subfolder,
+            dict_subtitle[metric] + " - " + "Mean",
+            dict_cmap[metric],
         )
-        ax.invert_yaxis()
-        plt.xlabel("Partition Coefficient", weight="bold")
-        plt.ylabel("Condensate Radius, nm", weight="bold")
-        title = (
-            " ".join([s.capitalize() for s in subfolder.split("-")])
-            + "\n"
-            + dict_subtitle[metric]
-            + " - Mean"
+        plot_heatmap(
+            heatmap_var,
+            subfolder,
+            dict_subtitle[metric] + " - " + "Variance",
+            cmap_default,
         )
-        path_save = join(
-            "Results-heatmap",
-            (
-                "_".join([s.capitalize() for s in subfolder.split("-")])
-                + "-"
-                + dict_subtitle[metric]
-                + "-Mean.png"
-            ),
-        )
-        plt.title(title, weight="bold")
-        plt.tight_layout()
-        plt.savefig(path_save, format="png", bbox_inches="tight")
-        plt.close()
-
-        plt.figure(dpi=300)
-        ax = sns.heatmap(
-            data=heatmap_var,
-            xticklabels=xticks,
-            yticklabels=yticks,
-            robust=True,
-            cmap=cmap_default,
-        )
-        ax.invert_yaxis()
-        plt.xlabel("Partition Coefficient", weight="bold")
-        plt.ylabel("Condensate Radius, nm", weight="bold")
-        title = (
-            " ".join([s.capitalize() for s in subfolder.split("-")])
-            + "\n"
-            + dict_subtitle[metric]
-            + " - Variance"
-        )
-        path_save = join(
-            "Results-heatmap",
-            (
-                "_".join([s.capitalize() for s in subfolder.split("-")])
-                + "-"
-                + dict_subtitle[metric]
-                + "-Variance.png"
-            ),
-        )
-        plt.title(title, weight="bold")
-        plt.tight_layout()
-        plt.savefig(path_save, format="png", bbox_inches="tight")
-        plt.close()
