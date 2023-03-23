@@ -112,7 +112,7 @@ for fpath in track(lst_tifs):
     lst_contours.append(contours_final)
 
     if switch_plot:
-        fpath_img = join("Method-2-Canny", fpath[:-4] + "_Denoise_Threshold.png")
+        fpath_img = join("Method-2-Canny", fpath[:-4] + "_Canny.png")
         pltcontours(img_raw, contours_final, fpath_img)
     else:
         continue
@@ -120,5 +120,5 @@ for fpath in track(lst_tifs):
 
 pickle.dump(
     [lst_index, lst_contours],
-    open(join("Method-2-Canny", "Contours_Denoise_Threshold.pkl"), "wb"),
+    open(join("Method-2-Canny", "Contours_Canny.pkl"), "wb"),
 )
