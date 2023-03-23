@@ -101,16 +101,16 @@ with Progress() as progress:
         cnt_reshaped = np.reshape(
             detected_contour, (detected_contour.shape[0], detected_contour.shape[2])
         )
-        d2edge_squared = []
+        d2edge = []
         for cnt_x, cnt_y in cnt_reshaped:
-            d2edge_squared.append(
+            d2edge.append(
                 np.sqrt(
                     (cnt_x * real_img_pxlsize - truth_x_nm) ** 2
                     + (cnt_y * real_img_pxlsize - truth_y_nm) ** 2
                 )
                 - truth_r_nm
             )
-        rmsd = np.sqrt(np.mean(np.array(d2edge_squared) ** 2))
+        rmsd = np.sqrt(np.mean(np.array(d2edge) ** 2))
         # calculate the relative deviation in area
         area = cv2.contourArea(detected_contour) * real_img_pxlsize**2
         # calculate partition coefficient
