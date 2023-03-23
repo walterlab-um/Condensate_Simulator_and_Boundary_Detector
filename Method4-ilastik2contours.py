@@ -15,7 +15,16 @@ folder = (
     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
 )
 os.chdir(folder)
-lst_subfolders = [f for f in os.listdir(folder) if f.startswith("ilastik")]
+lst_subfolders = [
+    "ilastik-Rosa",
+]
+# lst_subfolders = [
+#     "ilastik-EmilyS",
+#     "ilastik-SarahGolts",
+#     "ilastik-Sujay",
+#     "ilastik-Xiaofeng",
+#     "ilastik-Rosa",
+# ]
 
 switch_plot = True  # a switch to turn off plotting
 
