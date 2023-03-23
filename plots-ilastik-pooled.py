@@ -43,7 +43,12 @@ dict_vrange = {
     "fold_deviation_area": (-1, 1),
     "fold_deviation_PC": (-0.4, 0.4),
 }
-vrange_var = (1, 1000)
+dict_vrange_var = {
+    "deviation_center": (10**2, 10**3),
+    "rmsd_edge": (1, 10**3),
+    "fold_deviation_area": (10 ** (-4), 10 ** (-1)),
+    "fold_deviation_PC": (10 ** (-5), 10 ** (-3)),
+}
 
 
 ###################################
@@ -166,8 +171,14 @@ for metric in track(lst_metric, description="Metrices"):
     # plot heatmaps for different quantities, in both mean and varience
     if metric in ["deviation_center", "rmsd_edge"]:
         norm = LogNorm(vmin=dict_vrange[metric][0], vmax=dict_vrange[metric][1])
+        var_norm = LogNorm(
+            vmin=dict_vrange_var[metric][0], vmax=dict_vrange_var[metric][1]
+        )
     elif metric in ["fold_deviation_area", "fold_deviation_PC"]:
         norm = TwoSlopeNorm(0, vmin=dict_vrange[metric][0], vmax=dict_vrange[metric][1])
+        var_norm = LogNorm(
+            vmin=dict_vrange_var[metric][0], vmax=dict_vrange_var[metric][1]
+        )
 
     plot_heatmap(
         heatmap_mean,
@@ -179,5 +190,5 @@ for metric in track(lst_metric, description="Metrices"):
         heatmap_var,
         dict_subtitle[metric] + " - " + "Variance",
         cmap_default,
-        LogNorm(vmin=vrange_var[0], vmax=vrange_var[1]),
+        var_norm,
     )
