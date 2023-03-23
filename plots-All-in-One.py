@@ -2,7 +2,7 @@ import os
 from os.path import join, isdir, exists
 import shutil
 import matplotlib.pyplot as plt
-from matplotlib import colors
+from matplotlib.colors import LogNorm, TwoSlopeNorm
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -12,7 +12,7 @@ sns.set(color_codes=True, style="white")
 
 ###################################
 # Parameters
-bins = 10
+bins = 6
 
 folder = (
     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
@@ -37,8 +37,6 @@ dict_cmap = {
     "fold_deviation_PC": "seismic",
 }
 cmap_default = "magma"
-
-divnorm = colors.TwoSlopeNorm(0)
 
 
 ###################################
@@ -86,7 +84,7 @@ def assemble_heatmap(heatmap, metric=None, operation="rate"):
     return heatmap
 
 
-def plot_heatmap(heatmap, subfolder, subtitle, cmap):
+def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
     global xticks, yticks
     # plot heatmaps for different quantities, in both mean and varience
     plt.figure(dpi=300)
@@ -94,8 +92,10 @@ def plot_heatmap(heatmap, subfolder, subtitle, cmap):
         data=heatmap,
         xticklabels=xticks,
         yticklabels=yticks,
+        annot=True,
         robust=True,
         cmap=cmap,
+        norm=norm,
     )
     ax.invert_yaxis()
     plt.xlabel("Partition Coefficient", weight="bold")
@@ -151,15 +151,22 @@ for subfolder in track(lst_subfolders):
         heatmap_var = assemble_heatmap(heatmap_var, metric, "var")
 
         # plot heatmaps for different quantities, in both mean and varience
+        if metric in ["deviation_center", "rmsd_edge"]:
+            norm = LogNorm()
+        elif metric in ["fold_deviation_area", "fold_deviation_PC"]:
+            norm = TwoSlopeNorm(0)
+
         plot_heatmap(
             heatmap_mean,
             subfolder,
             dict_subtitle[metric] + " - " + "Mean",
             dict_cmap[metric],
+            norm,
         )
         plot_heatmap(
             heatmap_var,
             subfolder,
             dict_subtitle[metric] + " - " + "Variance",
             cmap_default,
+            LogNorm(),
         )
