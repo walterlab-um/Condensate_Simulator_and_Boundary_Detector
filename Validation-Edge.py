@@ -15,8 +15,18 @@ folder = (
 )
 os.chdir(folder)
 path_groundtruth = "groundtruth.csv"
-# path_pkl = "Method-1-Denoise_Threshold/Contours_Denoise_Threshold.pkl"
-path_pkl = "Method-2-Canny/Contours_Canny.pkl"
+path_pkl = "ilastik-Guoming/Contours_ilastik.pkl"
+# lst_pkl = [
+#     "Method-1-Denoise_Threshold/Contours_Denoise_Threshold.pkl",
+#     "Method-2-Canny/Contours_Canny.pkl",
+#     "ilastik-Guoming/Contours_ilastik.pkl",
+#     "ilastik-EmilyS/Contours_ilastik.pkl",
+#     "ilastik-SarahGolts/Contours_ilastik.pkl",
+#     "ilastik-Sujay/Contours_ilastik.pkl",
+#     "ilastik-Xiaofeng/Contours_ilastik.pkl",
+#     "ilastik-Liuhan/Contours_ilastik.pkl",
+#     "ilastik-Rosa/Contours_ilastik.pkl",
+# ]
 
 
 #################################################
@@ -117,7 +127,7 @@ with Progress() as progress:
         area_fold_deviation.append(area / (np.pi * truth_r_nm**2))
         fold_deviation_pc.append(partition_coefficient / truth_pc)
 
-        progress.update(task)
+        progress.update(task, refresh=True)
 
 
 df_save = pd.DataFrame(
