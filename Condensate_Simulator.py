@@ -38,7 +38,6 @@ sigma_axial = sigma_axial / truth_box_pxlsize
 depth_of_focus = depth_of_focus / truth_box_pxlsize
 
 ## Condensate parameters
-# condensate size follows Gaussian distribution
 condensate_r_range = (100, 600)  # radius of condensates, nm; Source: PB data
 condense_to_dilute_ratio = (2, 10)  # Source: 10.1016/j.molcel.2015.08.018, Fig 4
 C_dilute = 1  # N.A. unit
