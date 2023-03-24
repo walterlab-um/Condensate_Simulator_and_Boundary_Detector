@@ -40,8 +40,8 @@ cmap_default = "magma"
 dict_vrange = {
     "deviation_center": (70, 150),
     "rmsd_edge": (50, 200),
-    "fold_deviation_area": (-1, 1),
-    "fold_deviation_PC": (-0.4, 0.4),
+    "fold_deviation_area": (0, 2),
+    "fold_deviation_PC": (0, 2),
 }
 dict_vrange_var = {
     "deviation_center": (10**2, 10**3),
@@ -156,8 +156,8 @@ heatmap_var = np.zeros((bins - 1, bins - 1))
 heatmap_fail = np.zeros((bins - 1, bins - 1))
 
 # ticks labels for all heatmaps
-xticks = ((pc[:-1] + pc[1:]) / 2).astype(int)
-yticks = ((r[:-1] + r[1:]) / 2).astype(int)
+xticks = [round(x, 1) for x in (pc[:-1] + pc[1:]) / 2]
+yticks = [round(x, 1) for x in (r[:-1] + r[1:]) / 2]
 
 # plot fail rate as heatmap
 heatmap_fail = assemble_heatmap(heatmap_fail)
@@ -175,7 +175,7 @@ for metric in track(lst_metric, description="Metrices"):
             vmin=dict_vrange_var[metric][0], vmax=dict_vrange_var[metric][1]
         )
     elif metric in ["fold_deviation_area", "fold_deviation_PC"]:
-        norm = TwoSlopeNorm(0, vmin=dict_vrange[metric][0], vmax=dict_vrange[metric][1])
+        norm = TwoSlopeNorm(1, vmin=dict_vrange[metric][0], vmax=dict_vrange[metric][1])
         var_norm = LogNorm(
             vmin=dict_vrange_var[metric][0], vmax=dict_vrange_var[metric][1]
         )
