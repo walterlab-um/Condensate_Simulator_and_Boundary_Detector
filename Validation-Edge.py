@@ -4,7 +4,7 @@ import pickle
 import cv2
 import pandas as pd
 import numpy as np
-from rich.progress import Progress
+from rich.progress import track
 
 #################################################
 # Inputs
@@ -16,18 +16,17 @@ folder = (
 )
 os.chdir(folder)
 path_groundtruth = "groundtruth.csv"
-path_pkl = "ilastik-Rosa/Contours_ilastik.pkl"
-# lst_pkl = [
-#     "Method-1-Denoise_Threshold/Contours_Denoise_Threshold.pkl",
-#     "Method-2-Canny/Contours_Canny.pkl",
-#     "ilastik-Guoming/Contours_ilastik.pkl",
-#     "ilastik-EmilyS/Contours_ilastik.pkl",
-#     "ilastik-SarahGolts/Contours_ilastik.pkl",
-#     "ilastik-Sujay/Contours_ilastik.pkl",
-#     "ilastik-Xiaofeng/Contours_ilastik.pkl",
-#     "ilastik-Liuhan/Contours_ilastik.pkl",
-#     "ilastik-Rosa/Contours_ilastik.pkl",
-# ]
+lst_pkl = [
+    "Method-1-Denoise_Threshold/Contours_Denoise_Threshold.pkl",
+    "Method-2-Canny/Contours_Canny.pkl",
+    "ilastik-Guoming/Contours_ilastik.pkl",
+    "ilastik-EmilyS/Contours_ilastik.pkl",
+    "ilastik-SarahGolts/Contours_ilastik.pkl",
+    "ilastik-Sujay/Contours_ilastik.pkl",
+    "ilastik-Xiaofeng/Contours_ilastik.pkl",
+    "ilastik-Liuhan/Contours_ilastik.pkl",
+    "ilastik-Rosa/Contours_ilastik.pkl",
+]
 
 
 #################################################
@@ -52,19 +51,19 @@ def when_failed():
 
 #################################################
 # Main
-lst_index, lst_contours = pickle.load(open(path_pkl, "rb"))
-df_truth = pd.read_csv(path_groundtruth)
+for path_pkl in track(lst_pkl):
+    print("Now working on:", path_pkl)
+    lst_index, lst_contours = pickle.load(open(path_pkl, "rb"))
+    df_truth = pd.read_csv(path_groundtruth)
 
-lst_truth_r = []
-lst_truth_pc = []  # partition coefficient
-success = []
-deviation_center = []
-rmsd_edge = []
-area_fold_deviation = []  # with sign
-# difference in partition coefficient, assume outside C_dilute=1, so directly the average intensity inside, with sign
-fold_deviation_pc = []
-with Progress() as progress:
-    task = progress.add_task(path_pkl, total=len(lst_index))
+    lst_truth_r = []
+    lst_truth_pc = []  # partition coefficient
+    success = []
+    deviation_center = []
+    rmsd_edge = []
+    area_fold_deviation = []  # with sign
+    # difference in partition coefficient, assume outside C_dilute=1, so directly the average intensity inside, with sign
+    fold_deviation_pc = []
     for index, contours in zip(np.array(lst_index, dtype=int), lst_contours):
         # retreive ground truth
         row = df_truth[df_truth.FOVindex == index]
@@ -132,22 +131,19 @@ with Progress() as progress:
         area_fold_deviation.append(area / (np.pi * truth_r_nm**2))
         fold_deviation_pc.append(partition_coefficient / truth_pc)
 
-        progress.update(task, refresh=True)
+    df_save = pd.DataFrame(
+        {
+            "index": lst_index,
+            "truth_r": lst_truth_r,
+            "truth_pc": lst_truth_pc,
+            "success": success,
+            "deviation_center": deviation_center,
+            "rmsd_edge": rmsd_edge,
+            "fold_deviation_area": area_fold_deviation,
+            "fold_deviation_PC": fold_deviation_pc,
+        },
+        dtype=object,
+    )
 
-
-df_save = pd.DataFrame(
-    {
-        "index": lst_index,
-        "truth_r": lst_truth_r,
-        "truth_pc": lst_truth_pc,
-        "success": success,
-        "deviation_center": deviation_center,
-        "rmsd_edge": rmsd_edge,
-        "fold_deviation_area": area_fold_deviation,
-        "fold_deviation_PC": fold_deviation_pc,
-    },
-    dtype=object,
-)
-
-path_save = path_pkl[:-4] + "_results.csv"
-df_save.to_csv(path_save, index=False)
+    path_save = path_pkl[:-4] + "_results.csv"
+    df_save.to_csv(path_save, index=False)
