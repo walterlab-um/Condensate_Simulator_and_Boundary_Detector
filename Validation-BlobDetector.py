@@ -10,6 +10,7 @@ from rich.progress import track
 # Inputs
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
 fovsize = 5000  # unit: nm
+gaussian_noise_mean = 400
 Nsigma = 1  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
 
 folder = (
@@ -115,8 +116,8 @@ for index in track(lst_index):
         r_mean / real_img_pxlsize,
     )
     mask_out = 1 - mask_in
-    partition_coefficient = (
-        cv2.mean(img, mask=mask_in)[0] / cv2.mean(img, mask=mask_out)[0]
+    partition_coefficient = (cv2.mean(img, mask=mask_in)[0] - gaussian_noise_mean) / (
+        cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean
     )
 
     # save

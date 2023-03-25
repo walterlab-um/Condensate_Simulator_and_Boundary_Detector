@@ -10,6 +10,7 @@ from rich.progress import Progress
 # Inputs
 real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxlsize
 fovsize = 2000  # unit: nm
+gaussian_noise_mean = 400
 folder = (
     "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
 )
@@ -121,8 +122,8 @@ with Progress() as progress:
         mask_in = cnt_fill(img.shape, detected_contour)
         mask_out = 1 - mask_in
         partition_coefficient = (
-            cv2.mean(img, mask=mask_in)[0] / cv2.mean(img, mask=mask_out)[0]
-        )
+            cv2.mean(img, mask=mask_in)[0] - gaussian_noise_mean
+        ) / (cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean)
 
         # save
         success.append(True)
