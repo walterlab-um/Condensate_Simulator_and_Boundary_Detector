@@ -1,8 +1,7 @@
 import os
-from os.path import join, dirname, realpath
 import numpy as np
 from numpy.random import normal, rand, poisson
-import pandas as pd
+import matplotlib.pyplot as plt
 from tifffile import imwrite
 from scipy.ndimage import gaussian_filter
 from scipy.stats.qmc import Sobol
@@ -38,6 +37,20 @@ sigma_axial = (2 * np.sqrt(6) * refractive_index) / (
 sigma_lateral = sigma_lateral / truth_box_pxlsize
 sigma_axial = sigma_axial / truth_box_pxlsize
 depth_of_focus = depth_of_focus / truth_box_pxlsize
+
+
+def plt_blue(img, fsave):
+    plt.figure(dpi=300)
+    # Contrast stretching
+    vmin, vmax = np.percentile(img, (0.05, 99))
+    plt.imshow(img, cmap="Blues", vmin=vmin, vmax=vmax)
+    plt.xlim(0, img.shape[0])
+    plt.ylim(0, img.shape[1])
+    plt.tight_layout()
+    plt.axis("scaled")
+    plt.axis("off")
+    plt.savefig(fsave, format="png", bbox_inches="tight", dpi=300)
+    plt.close()
 
 
 #################################################
@@ -81,7 +94,11 @@ imwrite(
     "Fig2-1-truth-box.tif",
     truth_box.astype("uint16"),
     imagej=True,
+    metadata={"axes": "ZYX"},
 )
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi=600)
+ax.imshow(truth_box, cmap="Blues", vmin=0.05, vmax=99)
+plt.show()
 
 #################################################
 # Step 3: simulated 'real' image
@@ -94,6 +111,7 @@ imwrite(
     "Fig2-2-3d-PSF-convolved.tif",
     box_PSFconvolved.astype("uint16"),
     imagej=True,
+    metadata={"axes": "ZYX"},
 )
 
 # A slice with the thickness of depth of focus will generate an image
@@ -106,11 +124,7 @@ img_PSFconvolved = np.sum(
     ],
     axis=2,
 )
-imwrite(
-    "Fig2-3-slicing-by-DOF.tif",
-    img_PSFconvolved.astype("uint16"),
-    imagej=True,
-)
+plt_blue(img_PSFconvolved, "Fig2-3-slicing-by-DOF.png")
 
 # Magnification adjustment. Re-adjust the high-res image back to practically low-res image by integration
 fovsize_real = int(fovsize / real_img_pxlsize)
@@ -126,18 +140,10 @@ for xx in np.arange(fovsize_real):
             )
         )
 img_shrinked = np.array(lst_pxl_value).reshape((fovsize_real, fovsize_real))
-imwrite(
-    "Fig2-4-downsampling.tif",
-    img_shrinked.astype("uint16"),
-    imagej=True,
-)
+plt_blue(img_shrinked, "Fig2-4-downsampling.png")
 
 gaussian_noise = normal(gaussian_noise_mean, gaussian_noise_sigma, img_shrinked.shape)
 img_gaussian = img_shrinked + gaussian_noise
 poisson_mask = poisson(img_gaussian)
 img_final = img_gaussian + poisson_mask
-imwrite(
-    "Fig2-5-added-noise-final.tif",
-    img_final.astype("uint16"),
-    imagej=True,
-)
+plt_blue(img_final, "Fig2-5-added-noise-final.png")
