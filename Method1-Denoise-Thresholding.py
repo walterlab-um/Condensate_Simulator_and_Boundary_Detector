@@ -1,6 +1,6 @@
-from tkinter import filedialog as fd
+import shutil
 import os
-from os.path import join
+from os.path import join, exists
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,12 +15,12 @@ from rich.progress import track
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-4096"
 )
 os.chdir(folder)
 lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
 
-switch_plot = True  # a switch to turn off plotting
+switch_plot = False  # a switch to turn off plotting
 
 
 ####################################
@@ -68,6 +68,8 @@ def cnt2mask(imgshape, contours):
 
 ####################################
 # Main
+if exists("Method-1-Denoise_Threshold"):
+    shutil.rmtree("Method-1-Denoise_Threshold")
 os.mkdir("Method-1-Denoise_Threshold")
 lst_index = []
 lst_contours = []
