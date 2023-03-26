@@ -27,7 +27,7 @@ plow = 0.05  # imshow intensity percentile
 phigh = 99
 
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-4096"
 )
 os.chdir(folder)
 lst_tifs = [f for f in os.listdir(folder) if f.endswith(".tif")]
