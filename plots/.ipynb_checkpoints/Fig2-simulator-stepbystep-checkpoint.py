@@ -1,10 +1,11 @@
 import os
 import numpy as np
-from numpy.random import normal, poisson
+from numpy.random import normal, rand, poisson
 import matplotlib.pyplot as plt
+from tifffile import imwrite
 from scipy.ndimage import gaussian_filter
-import plotly.graph_objects as go
-
+from scipy.stats.qmc import Sobol
+from rich.progress import track
 
 ##################################
 # Parameters
@@ -52,75 +53,6 @@ def plt_blue(img, fsave):
     plt.close()
 
 
-def down_sample_3d(box_in, ratio=3):
-    lst_pxl_value = []
-    x_size_out = int(box_in.shape[0] / ratio)
-    y_size_out = int(box_in.shape[1] / ratio)
-    z_size_out = int(box_in.shape[2] / ratio)
-    for xx in np.arange(x_size_out):
-        for yy in np.arange(y_size_out):
-            for zz in np.arange(z_size_out):
-                lst_pxl_value.append(
-                    np.mean(
-                        box_in[
-                            ratio * xx : ratio * (xx + 1),
-                            ratio * yy : ratio * (yy + 1),
-                            ratio * zz : ratio * (zz + 1),
-                        ]
-                    )
-                )
-    box_out = np.array(lst_pxl_value).reshape((x_size_out, y_size_out, z_size_out))
-
-    return box_out
-
-
-def plot_3d_box(box, ratio=3, fname="default_fname.png"):
-    box_plot = down_sample_3d(box, ratio)
-
-    xx, yy, zz = np.meshgrid(
-        np.arange(box_plot.shape[0]),
-        np.arange(box_plot.shape[1]),
-        np.arange(box_plot.shape[2]),
-    )
-    fig = go.Figure(
-        data=go.Volume(
-            x=xx.flatten(),
-            y=yy.flatten(),
-            z=zz.flatten(),
-            value=box_plot.flatten(),
-            isomin=0,
-            isomax=8,
-            opacity=0.1,
-            surface_count=30,
-            colorscale="Blues",
-        ),
-    )
-    fig.update_layout(
-        scene=dict(
-            xaxis=dict(
-                backgroundcolor="rgba(0,0,0,0)",
-                gridcolor="white",
-                showbackground=True,
-                zerolinecolor="white",
-            ),
-            yaxis=dict(
-                backgroundcolor="rgba(0,0,0,0)",
-                gridcolor="white",
-                showbackground=True,
-                zerolinecolor="white",
-            ),
-            zaxis=dict(
-                backgroundcolor="rgba(0,0,0,0)",
-                gridcolor="white",
-                showbackground=True,
-                zerolinecolor="white",
-            ),
-        ),
-        scene_camera=dict(eye=dict(x=1, y=2, z=1)),
-    )
-    fig.write_image(fname, width=700, height=700, format="png")
-
-
 #################################################
 # Step 1: Analytical ground truth
 x_nm = 927.6697531
@@ -158,7 +90,12 @@ condensate_mask = distance_square < r_pxl**2
 
 # Make a truth box
 truth_box = condensate_mask * C_condense + (1 - condensate_mask) * C_dilute
-plot_3d_box(truth_box, 3, "Fig2-1-truth.png")
+imwrite(
+    "Fig2-1-truth-box.tif",
+    truth_box.astype("uint16"),
+    imagej=True,
+    metadata={"axes": "ZYX"},
+)
 
 #################################################
 # Step 3: simulated 'real' image
@@ -167,7 +104,12 @@ plot_3d_box(truth_box, 3, "Fig2-1-truth.png")
 box_PSFconvolved = gaussian_filter(
     truth_box, sigma=[sigma_lateral, sigma_lateral, sigma_axial]
 )
-plot_3d_box(box_PSFconvolved, 3, "Fig2-2-convolved.png")
+imwrite(
+    "Fig2-2-3d-PSF-convolved.tif",
+    box_PSFconvolved.astype("uint16"),
+    imagej=True,
+    metadata={"axes": "ZYX"},
+)
 
 # A slice with the thickness of depth of focus will generate an image
 z_middle = (z_max - z_min) / 2
@@ -180,6 +122,11 @@ img_PSFconvolved = np.sum(
     axis=2,
 )
 plt_blue(img_PSFconvolved, "Fig2-3-slicing-by-DOF.png")
+imwrite(
+    "Fig2-3-slicing-by-DOF.tif",
+    img_PSFconvolved.astype("uint16"),
+    imagej=True,
+)
 
 # Magnification adjustment. Re-adjust the high-res image back to practically low-res image by integration
 fovsize_real = int(fovsize / real_img_pxlsize)
