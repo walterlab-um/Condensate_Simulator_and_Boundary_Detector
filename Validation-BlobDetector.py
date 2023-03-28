@@ -14,7 +14,7 @@ gaussian_noise_mean = 400
 Nsigma = 1  # boundary will be Nsigma * sigmax/y, use 2.355 for FWHM
 
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-4096"
 )
 os.chdir(folder)
 

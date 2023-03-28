@@ -12,20 +12,21 @@ real_img_pxlsize = 100  # unit: nm, must be an integer multiple of truth_img_pxl
 fovsize = 2000  # unit: nm
 gaussian_noise_mean = 400
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-4096"
 )
 os.chdir(folder)
 path_groundtruth = "groundtruth.csv"
+
 lst_pkl = [
     "Method-1-Denoise_Threshold/Contours_Denoise_Threshold.pkl",
     "Method-2-Canny/Contours_Canny.pkl",
-    "ilastik-Guoming/Contours_ilastik.pkl",
-    "ilastik-EmilyS/Contours_ilastik.pkl",
-    "ilastik-SarahGolts/Contours_ilastik.pkl",
-    "ilastik-Sujay/Contours_ilastik.pkl",
-    "ilastik-Xiaofeng/Contours_ilastik.pkl",
-    "ilastik-Liuhan/Contours_ilastik.pkl",
-    "ilastik-Rosa/Contours_ilastik.pkl",
+    "ilastik-Researcher-1/Contours_ilastik.pkl",
+    "ilastik-Researcher-2/Contours_ilastik.pkl",
+    "ilastik-Researcher-3/Contours_ilastik.pkl",
+    "ilastik-Researcher-4/Contours_ilastik.pkl",
+    "ilastik-Researcher-5/Contours_ilastik.pkl",
+    "ilastik-Researcher-6/Contours_ilastik.pkl",
+    "ilastik-Researcher-7/Contours_ilastik.pkl",
 ]
 
 
@@ -119,11 +120,16 @@ for path_pkl in track(lst_pkl):
         # calculate partition coefficient
         img = imread("Simulated-FOVindex-" + str(index) + ".tif")
         mask_in = cnt_fill(img.shape, detected_contour)
-        mask_out = 1 - mask_in
+        # To accurately calculate PC, need to get precise background
+        # Therefore, dilate maske before reverting to avoid counting in condensate pixels
+        mask_out = 1 - cv2.dilate(mask_in, np.ones((9, 9), np.uint8), iterations=2)
         partition_coefficient = (
             cv2.mean(img, mask=mask_in)[0] - gaussian_noise_mean
         ) / (cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean)
-
+        print("ID", index)
+        print("intensity_in", cv2.mean(img, mask=mask_in))
+        print("intensity_out", cv2.mean(img, mask=mask_out))
+        print("PC", partition_coefficient)
         # save
         success.append(True)
         deviation_center.append(d2center)

@@ -10,7 +10,7 @@ sns.set(color_codes=True, style="white")
 bins = 10
 
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-4096"
 )
 os.chdir(folder)
 data = pd.read_csv("groundtruth.csv", dtype=float)

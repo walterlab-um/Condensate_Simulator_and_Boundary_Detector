@@ -12,21 +12,20 @@ from rich.progress import track
 plow = 0.05  # imshow intensity percentile
 phigh = 99
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-4096"
 )
 os.chdir(folder)
 lst_subfolders = [
+    "ilastik-Guoming",
+    "ilastik-Liuhan",
+    "ilastik-EmilyS",
     "ilastik-Rosa",
+    "ilastik-SarahGolts",
+    "ilastik-Sujay",
+    "ilastik-Xiaofeng",
 ]
-# lst_subfolders = [
-#     "ilastik-EmilyS",
-#     "ilastik-SarahGolts",
-#     "ilastik-Sujay",
-#     "ilastik-Xiaofeng",
-#     "ilastik-Rosa",
-# ]
 
-switch_plot = True  # a switch to turn off plotting
+switch_plot = False  # a switch to turn off plotting
 
 
 ####################################

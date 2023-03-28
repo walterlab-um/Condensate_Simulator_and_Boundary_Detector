@@ -96,9 +96,6 @@ imwrite(
     imagej=True,
     metadata={"axes": "ZYX"},
 )
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi=600)
-ax.imshow(truth_box, cmap="Blues", vmin=0.05, vmax=99)
-plt.show()
 
 #################################################
 # Step 3: simulated 'real' image
@@ -125,6 +122,11 @@ img_PSFconvolved = np.sum(
     axis=2,
 )
 plt_blue(img_PSFconvolved, "Fig2-3-slicing-by-DOF.png")
+imwrite(
+    "Fig2-3-slicing-by-DOF.tif",
+    img_PSFconvolved.astype("uint16"),
+    imagej=True,
+)
 
 # Magnification adjustment. Re-adjust the high-res image back to practically low-res image by integration
 fovsize_real = int(fovsize / real_img_pxlsize)

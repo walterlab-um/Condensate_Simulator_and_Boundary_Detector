@@ -15,7 +15,7 @@ sns.set(color_codes=True, style="white")
 bins = 6
 
 folder = (
-    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-1024"
+    "/Volumes/AnalysisGG/PROCESSED_DATA/JPCB-CondensateBoundaryDetection/Simulated-4096"
 )
 os.chdir(folder)
 lst_metric = [
