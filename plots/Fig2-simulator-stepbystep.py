@@ -3,6 +3,7 @@ import numpy as np
 from numpy.random import normal, poisson
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
+from tifffile import imwrite
 import plotly.graph_objects as go
 
 
@@ -41,7 +42,7 @@ depth_of_focus = depth_of_focus / truth_box_pxlsize
 def plt_blue(img, fsave):
     plt.figure(dpi=300)
     # Contrast stretching
-    vmin, vmax = np.percentile(img, (0.05, 99))
+    vmin, vmax = np.percentile(img, (0.5, 95))
     plt.imshow(img, cmap="Blues", vmin=vmin, vmax=vmax)
     plt.xlim(0, img.shape[0])
     plt.ylim(0, img.shape[1])
@@ -87,12 +88,13 @@ def plot_3d_box(box, ratio=3, fname="default_fname.png"):
             x=xx.flatten(),
             y=yy.flatten(),
             z=zz.flatten(),
-            value=box_plot.flatten(),
+            value=box_plot.flatten() + 10,
             isomin=0,
-            isomax=8,
-            opacity=0.1,
+            isomax=box_plot.max() + 10,
+            opacity=0.2,
             surface_count=30,
             colorscale="Blues",
+            showscale=False,
         ),
     )
     fig.update_layout(
@@ -102,30 +104,38 @@ def plot_3d_box(box, ratio=3, fname="default_fname.png"):
                 gridcolor="white",
                 showbackground=True,
                 zerolinecolor="white",
+                titlefont={"family": "Arial", "size": 100},
+                visible=False,
             ),
             yaxis=dict(
                 backgroundcolor="rgba(0,0,0,0)",
                 gridcolor="white",
                 showbackground=True,
                 zerolinecolor="white",
+                titlefont={"family": "Arial", "size": 100},
+                visible=False,
             ),
             zaxis=dict(
                 backgroundcolor="rgba(0,0,0,0)",
                 gridcolor="white",
                 showbackground=True,
                 zerolinecolor="white",
+                titlefont={"family": "Arial", "size": 100},
+                visible=False,
             ),
         ),
-        scene_camera=dict(eye=dict(x=1, y=2, z=1)),
+        scene_camera=dict(eye=dict(x=1.2 * 1.3, y=1 * 1.3, z=0.8 * 1.3)),
+        showlegend=False,
+        margin=dict(l=0, r=0, t=0, b=0),
     )
-    fig.write_image(fname, width=700, height=700, format="png")
+    fig.write_image(fname, width=1000, height=1000, format="png")
 
 
 #################################################
 # Step 1: Analytical ground truth
 x_nm = 927.6697531
 y_nm = 898.5484143
-r_nm = 506.25
+r_nm = 400
 C_condense = 9.0546875
 C_dilute = 1  # N.A. unit
 
@@ -158,7 +168,7 @@ condensate_mask = distance_square < r_pxl**2
 
 # Make a truth box
 truth_box = condensate_mask * C_condense + (1 - condensate_mask) * C_dilute
-plot_3d_box(truth_box, 3, "Fig2-1-truth.png")
+# plot_3d_box(truth_box, 3, "Fig2-1-truth.png")
 
 #################################################
 # Step 3: simulated 'real' image
@@ -167,7 +177,8 @@ plot_3d_box(truth_box, 3, "Fig2-1-truth.png")
 box_PSFconvolved = gaussian_filter(
     truth_box, sigma=[sigma_lateral, sigma_lateral, sigma_axial]
 )
-plot_3d_box(box_PSFconvolved, 3, "Fig2-2-convolved.png")
+# plot_3d_box(box_PSFconvolved, 3, "Fig2-2-convolved.png")
+plt_blue(box_PSFconvolved[int(center_x_pxl), :, :], "Fig2-2-convolved-cross.png")
 
 # A slice with the thickness of depth of focus will generate an image
 z_middle = (z_max - z_min) / 2
@@ -202,3 +213,8 @@ img_gaussian = img_shrinked + gaussian_noise
 poisson_mask = poisson(img_gaussian)
 img_final = img_gaussian + poisson_mask
 plt_blue(img_final, "Fig2-5-added-noise-final.png")
+imwrite(
+    "Fig2-5-added-noise-final.tif",
+    img_final.astype("uint16"),
+    imagej=True,
+)
