@@ -25,12 +25,13 @@ path_groundtruth = "groundtruth.csv"
 #################################################
 # Functions
 def when_failed():
-    global success, rmsd_center, rmsd_edge, area_fold_deviation, fold_deviation_pc
+    global success, rmsd_center, rmsd_edge, area_fold_deviation, fold_deviation_pc, fold_deviation_pc_max
     success.append(False)
     deviation_center.append(np.nan)
     rmsd_edge.append(np.nan)
     area_fold_deviation.append(np.nan)
     fold_deviation_pc.append(np.nan)
+    fold_deviation_pc_max.append(np.nan)
 
 
 def generate_mask(imgshape, cx, cy, r_mean):
@@ -61,6 +62,7 @@ rmsd_edge = []
 area_fold_deviation = []  # with sign
 # difference in partition coefficient, assume outside C_dilute=1, so directly the average intensity inside, with sign
 fold_deviation_pc = []
+fold_deviation_pc_max = []
 for index in track(lst_index):
     # retreive ground truth
     row = df_truth[df_truth.FOVindex == index]
@@ -119,6 +121,9 @@ for index in track(lst_index):
     partition_coefficient = (cv2.mean(img, mask=mask_in)[0] - gaussian_noise_mean) / (
         cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean
     )
+    partition_coefficient_max = (
+        cv2.max(img, mask=mask_in)[0] - gaussian_noise_mean
+    ) / (cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean)
 
     # save
     success.append(True)
@@ -126,6 +131,7 @@ for index in track(lst_index):
     rmsd_edge.append(rmsd)
     area_fold_deviation.append(area / (np.pi * truth_r_nm**2))
     fold_deviation_pc.append(partition_coefficient / truth_pc)
+    fold_deviation_pc_max.append(partition_coefficient_max / truth_pc)
 
 
 df_save = pd.DataFrame(
@@ -138,6 +144,7 @@ df_save = pd.DataFrame(
         "rmsd_edge": rmsd_edge,
         "fold_deviation_area": area_fold_deviation,
         "fold_deviation_PC": fold_deviation_pc,
+        "fold_deviation_PC_max": fold_deviation_pc_max,
     },
     dtype=object,
 )
