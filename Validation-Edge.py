@@ -42,13 +42,13 @@ def cnt_fill(imgshape, cnt):
 
 
 def when_failed():
-    global success, rmsd_center, rmsd_edge, area_fold_deviation, fold_deviation_pc
+    global success, rmsd_center, rmsd_edge, area_fold_deviation, fold_deviation_pc， fold_deviation_pc_max
     success.append(False)
     deviation_center.append(np.nan)
     rmsd_edge.append(np.nan)
     area_fold_deviation.append(np.nan)
     fold_deviation_pc.append(np.nan)
-
+    fold_deviation_pc_max.append(np.nan)
 
 #################################################
 # Main
@@ -65,6 +65,7 @@ for path_pkl in track(lst_pkl):
     area_fold_deviation = []  # with sign
     # difference in partition coefficient, assume outside C_dilute=1, so directly the average intensity inside, with sign
     fold_deviation_pc = []
+    fold_deviation_pc_max = []
     for index, contours in zip(np.array(lst_index, dtype=int), lst_contours):
         # retreive ground truth
         row = df_truth[df_truth.FOVindex == index]
@@ -126,16 +127,16 @@ for path_pkl in track(lst_pkl):
         partition_coefficient = (
             cv2.mean(img, mask=mask_in)[0] - gaussian_noise_mean
         ) / (cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean)
-        print("ID", index)
-        print("intensity_in", cv2.mean(img, mask=mask_in))
-        print("intensity_out", cv2.mean(img, mask=mask_out))
-        print("PC", partition_coefficient)
+        partition_coefficient_max = (
+            cv2.max(img, mask=mask_in)[0] - gaussian_noise_mean
+        ) / (cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean)
         # save
         success.append(True)
         deviation_center.append(d2center)
         rmsd_edge.append(rmsd)
         area_fold_deviation.append(area / (np.pi * truth_r_nm**2))
         fold_deviation_pc.append(partition_coefficient / truth_pc)
+        fold_deviation_pc_max.append(partition_coefficient_max / truth_pc)
 
     df_save = pd.DataFrame(
         {
@@ -147,6 +148,7 @@ for path_pkl in track(lst_pkl):
             "rmsd_edge": rmsd_edge,
             "fold_deviation_area": area_fold_deviation,
             "fold_deviation_PC": fold_deviation_pc,
+            "fold_deviation_PC_max": fold_deviation_pc_max,
         },
         dtype=object,
     )
