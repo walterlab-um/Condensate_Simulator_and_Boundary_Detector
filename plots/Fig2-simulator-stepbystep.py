@@ -191,6 +191,15 @@ img_PSFconvolved = np.sum(
     axis=2,
 )
 plt_blue(img_PSFconvolved, "Fig2-3-slicing-by-DOF.png")
+img_original = np.sum(
+    truth_box[
+        :,
+        :,
+        int(z_middle - depth_of_focus / 2) : int(z_middle + depth_of_focus / 2) + 1,
+    ],
+    axis=2,
+)
+plt_blue(img_original, "Fig2-x-original-slicing-by-DOF.png")
 
 # Magnification adjustment. Re-adjust the high-res image back to practically low-res image by integration
 fovsize_real = int(fovsize / real_img_pxlsize)
