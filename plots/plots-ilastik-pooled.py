@@ -23,18 +23,21 @@ lst_metric = [
     "rmsd_edge",
     "fold_deviation_area",
     "fold_deviation_PC",
+    "fold_deviation_PC_max",
 ]
 dict_subtitle = {
     "deviation_center": "Center Deviation, nm",
     "rmsd_edge": "Edge Deviation RMSD, nm",
     "fold_deviation_area": "Area Deviation Fold Change",
     "fold_deviation_PC": "PC Deviation Fold Change",
+    "fold_deviation_PC_max": "PC-max Deviation Fold Change",
 }
 dict_cmap = {
     "deviation_center": "magma",
     "rmsd_edge": "magma",
     "fold_deviation_area": "seismic",
     "fold_deviation_PC": "seismic",
+    "fold_deviation_PC_max": "seismic",
 }
 cmap_default = "magma"
 dict_vrange = {
@@ -42,12 +45,14 @@ dict_vrange = {
     "rmsd_edge": (50, 200),
     "fold_deviation_area": (0, 2),
     "fold_deviation_PC": (0, 2),
+    "fold_deviation_PC_max": (0, 2),
 }
 dict_vrange_var = {
     "deviation_center": (10**2, 10**3),
     "rmsd_edge": (1, 10**3),
     "fold_deviation_area": (10 ** (-4), 10 ** (-1)),
     "fold_deviation_PC": (10 ** (-5), 10 ** (-3)),
+    "fold_deviation_PC_max": (10 ** (-5), 10 ** (-3)),
 }
 
 
@@ -174,7 +179,11 @@ for metric in track(lst_metric, description="Metrices"):
         var_norm = LogNorm(
             vmin=dict_vrange_var[metric][0], vmax=dict_vrange_var[metric][1]
         )
-    elif metric in ["fold_deviation_area", "fold_deviation_PC"]:
+    elif metric in [
+        "fold_deviation_area",
+        "fold_deviation_PC",
+        "fold_deviation_PC_max",
+    ]:
         norm = TwoSlopeNorm(1, vmin=dict_vrange[metric][0], vmax=dict_vrange[metric][1])
         var_norm = LogNorm(
             vmin=dict_vrange_var[metric][0], vmax=dict_vrange_var[metric][1]
