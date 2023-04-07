@@ -121,9 +121,9 @@ for index in track(lst_index):
     partition_coefficient = (cv2.mean(img, mask=mask_in)[0] - gaussian_noise_mean) / (
         cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean
     )
-    partition_coefficient_max = (
-        cv2.max(img, mask=mask_in)[0] - gaussian_noise_mean
-    ) / (cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean)
+    partition_coefficient_max = (np.max(img) - gaussian_noise_mean) / (
+        cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean
+    )
 
     # save
     success.append(True)

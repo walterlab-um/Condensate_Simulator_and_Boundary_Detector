@@ -42,13 +42,14 @@ def cnt_fill(imgshape, cnt):
 
 
 def when_failed():
-    global success, rmsd_center, rmsd_edge, area_fold_deviation, fold_deviation_pc， fold_deviation_pc_max
+    global success, rmsd_center, rmsd_edge, area_fold_deviation, fold_deviation_pc, fold_deviation_pc_max
     success.append(False)
     deviation_center.append(np.nan)
     rmsd_edge.append(np.nan)
     area_fold_deviation.append(np.nan)
     fold_deviation_pc.append(np.nan)
     fold_deviation_pc_max.append(np.nan)
+
 
 #################################################
 # Main
@@ -127,9 +128,9 @@ for path_pkl in track(lst_pkl):
         partition_coefficient = (
             cv2.mean(img, mask=mask_in)[0] - gaussian_noise_mean
         ) / (cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean)
-        partition_coefficient_max = (
-            cv2.max(img, mask=mask_in)[0] - gaussian_noise_mean
-        ) / (cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean)
+        partition_coefficient_max = (np.max(img) - gaussian_noise_mean) / (
+            cv2.mean(img, mask=mask_out)[0] - gaussian_noise_mean
+        )
         # save
         success.append(True)
         deviation_center.append(d2center)
