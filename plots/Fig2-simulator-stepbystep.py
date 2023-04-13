@@ -4,8 +4,11 @@ from numpy.random import normal, poisson
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 from tifffile import imwrite
+import pandas as pd
 import plotly.graph_objects as go
+import seaborn as sns
 
+sns.set(color_codes=True, style="white")
 
 ##################################
 # Parameters
@@ -201,6 +204,7 @@ img_original = np.sum(
 )
 plt_blue(img_original, "Fig2-x-original-slicing-by-DOF.png")
 
+
 # Magnification adjustment. Re-adjust the high-res image back to practically low-res image by integration
 fovsize_real = int(fovsize / real_img_pxlsize)
 ratio = int(real_img_pxlsize / truth_box_pxlsize)
@@ -227,3 +231,75 @@ imwrite(
     img_final.astype("uint16"),
     imagej=True,
 )
+
+
+# line plot for Fig-PC physical origin of underestimation
+cross_ground_truth = img_original[int(center_x_pxl), :]
+cross_ground_truth = cross_ground_truth / cross_ground_truth.min()
+cross_PSFconvolved = img_PSFconvolved[int(center_x_pxl), :]
+cross_PSFconvolved = cross_PSFconvolved / cross_PSFconvolved.min()
+df = pd.DataFrame(
+    {
+        "distance_nm": np.arange(img_original.shape[0]) * truth_box_pxlsize,
+        "ground_truth": cross_ground_truth,
+        "PSF_convolved": cross_PSFconvolved,
+        "idx": np.arange(img_original.shape[0]),
+    }
+)
+df.to_csv("test.csv", index=False)
+plt.figure(figsize=(4, 2), dpi=600)
+ax = sns.lineplot(
+    x=df["distance_nm"].to_numpy(dtype=float),
+    y=df["ground_truth"].to_numpy(dtype=float),
+    color="#304d6d",
+    linewidth=5,
+)
+ax.axvline(530, lw=3, alpha=0.5, color="gray")
+ax.axvline(1320, lw=3, alpha=0.5, color="gray")
+ax.plot(
+    np.linspace(530, 1320, 10),
+    np.repeat(
+        np.mean(cross_ground_truth[53:133]),
+        10,
+    ),
+    color="#82a0bc",
+    linewidth=5,
+    alpha=0.8,
+)
+# ax.xaxis.grid(True, which="major")
+# ax.yaxis.grid(True, which="major")
+x = df["distance_nm"].to_numpy(dtype=float)
+plt.xlim(x.min(), x.max())
+plt.ylim(0, 10)
+plt.tight_layout()
+plt.savefig("Fig-PC-cross-original.png", format="png", bbox_inches="tight")
+plt.close()
+
+
+plt.figure(figsize=(4, 2), dpi=600)
+ax = sns.lineplot(
+    x=df["distance_nm"].to_numpy(dtype=float),
+    y=df["PSF_convolved"].to_numpy(dtype=float),
+    color="#304d6d",
+    linewidth=5,
+)
+ax.axvline(530, lw=3, alpha=0.5, color="gray")
+ax.axvline(1320, lw=3, alpha=0.5, color="gray")
+ax.plot(
+    np.linspace(530, 1320, 10),
+    np.repeat(
+        np.mean(cross_PSFconvolved[53:133]),
+        10,
+    ),
+    color="#82a0bc",
+    linewidth=5,
+    alpha=0.8,
+)
+# ax.xaxis.grid(True, which="major")
+# ax.yaxis.grid(True, which="major")
+x = df["distance_nm"].to_numpy(dtype=float)
+plt.xlim(x.min(), x.max())
+plt.ylim(0, 10)
+plt.tight_layout()
+plt.savefig("Fig-PC-cross-PSFconvolved.png", format="png", bbox_inches="tight")
+plt.close()
