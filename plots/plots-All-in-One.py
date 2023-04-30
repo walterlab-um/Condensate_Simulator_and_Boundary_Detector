@@ -104,7 +104,7 @@ def assemble_heatmap(heatmap, metric=None, operation="rate"):
 def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
     global xticks, yticks
     # plot heatmaps for different quantities, in both mean and varience
-    plt.figure(figsize=(6, 5), dpi=300)
+    plt.figure(figsize=(5, 5), dpi=300)
     if norm == None:
         ax = sns.heatmap(
             data=heatmap,
@@ -114,6 +114,9 @@ def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
             cmap=cmap,
             vmax=1,
             vmin=0,
+            cbar=False,
+            annot_kws={"fontsize": 15},
+            fmt=".2f",
         )
     else:
         ax = sns.heatmap(
@@ -123,10 +126,13 @@ def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
             annot=True,
             cmap=cmap,
             norm=norm,
+            cbar=False,
+            annot_kws={"fontsize": 15},
+            fmt=".2f",
         )
     ax.invert_yaxis()
-    plt.xlabel("Partition Coefficient", weight="bold")
-    plt.ylabel("Condensate Radius, nm", weight="bold")
+    # plt.xlabel("Partition Coefficient", weight="bold")
+    # plt.ylabel("Condensate Radius, nm", weight="bold")
     title = " ".join([s.capitalize() for s in subfolder.split("-")]) + "\n" + subtitle
     path_save = join(
         "Results-heatmap",
@@ -137,7 +143,7 @@ def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
             + ".png"
         ),
     )
-    plt.title(title, weight="bold")
+    # plt.title(title, weight="bold")
     plt.tight_layout()
     plt.savefig(path_save, format="png", bbox_inches="tight")
     plt.close()
