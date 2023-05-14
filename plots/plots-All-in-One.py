@@ -116,7 +116,6 @@ def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
             vmin=0,
             cbar=False,
             annot_kws={"fontsize": 15},
-            fmt=".2f",
         )
     else:
         ax = sns.heatmap(
@@ -128,9 +127,9 @@ def plot_heatmap(heatmap, subfolder, subtitle, cmap, norm=None):
             norm=norm,
             cbar=False,
             annot_kws={"fontsize": 15},
-            fmt=".2f",
         )
     ax.invert_yaxis()
+    ax.tick_params(axis="both", which="major", labelsize=20)
     # plt.xlabel("Partition Coefficient", weight="bold")
     # plt.ylabel("Condensate Radius, nm", weight="bold")
     title = " ".join([s.capitalize() for s in subfolder.split("-")]) + "\n" + subtitle
