@@ -84,7 +84,7 @@ for idx in track(range(frames_condensate.shape[0])):
     )
     ax.add_patch(spot)
     plt.axis("scaled")
-    # plt.axis("off")
+    plt.axis("off")
     plt.gca().invert_yaxis()  # must invert AFTER xlim, otherwise it goes back uninverted
     plt.savefig(fname_save, format="png", bbox_inches="tight")
     plt.close()
@@ -104,7 +104,7 @@ for idx in track(range(frames_condensate.shape[0])):
     )
     ax.add_patch(spot)
     plt.axis("scaled")
-    # plt.axis("off")
+    plt.axis("off")
     plt.gca().invert_yaxis()  # must invert AFTER xlim, otherwise it goes back uninverted
     plt.savefig(fname_save, format="png", bbox_inches="tight")
     plt.close()
@@ -134,6 +134,7 @@ for idx in track(range(frames_condensate.shape[0])):
     ax.plot(x_RNA, y_RNA, ls="-", lw=1, color=color_RNA)
     plt.scatter(x_RNA[-1], y_RNA[-1], s=200, color=color_RNA)
     plt.axis("scaled")
+    plt.axis("off")
     plt.xlim(-0.5, frames_condensate.shape[2] - 0.5)
     plt.ylim(-0.5, frames_condensate.shape[1] - 0.5)
     plt.savefig(fname_save, format="png", bbox_inches="tight")
